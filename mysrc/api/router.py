@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from mysrc.api.dao import TenderDAO
 from mysrc.api.models import TenderServiceType, TenderStatus
-from mysrc.api.schemas import STenderCreate
+from mysrc.api.schemas import STenderCreate, STenderUpdate
 
 router = APIRouter(
     prefix="/api",
@@ -67,3 +67,12 @@ async def change_tender_status_by_id(
 ):
     return await dao.change_tender_status_by_id(tenderId, status, username)
 
+
+@router.patch("/tenders/{tenderId}/edit")
+async def change_tender_status_by_id(
+        tenderId: int,
+        tender_update_data: STenderUpdate,
+        username: str,
+        dao: TenderDAO = Depends()
+):
+    return await dao.update_tender_by_id(tenderId, tender_update_data, username)

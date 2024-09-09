@@ -5,7 +5,7 @@ from sqlalchemy import select, func, text
 
 from mysrc.api.models import MTender, MOrganizationResponsible, MOrganization, MEmployee, TenderServiceType, \
     MTenderVersion, TenderStatus
-from mysrc.api.schemas import STenderCreate, STenderRead, TenderLastVersionRead
+from mysrc.api.schemas import STenderCreate, STenderRead, TenderLastVersionRead, STenderUpdate
 from mysrc.dao_base import DAO
 
 
@@ -225,3 +225,14 @@ class TenderDAO(DAO):
         setattr(m_tender, 'status', status)
         await self.db.commit()
         return m_tender
+
+    async def update_tender_by_id(self, tender_id: int, tender_update_data: STenderUpdate, username: str):
+        m_tender = await self._get_one_or_none_tender_by_id(tender_id)
+        if False:
+            raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
+        for key, value in tender_update_data.model_dump(exclude_unset=True).items():
+            setattr(m_tender, key, value)
+        await self.db.commit()
+        return m_tender
+
+
