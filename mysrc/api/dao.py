@@ -2,7 +2,7 @@ from fastapi import HTTPException
 from sqlalchemy import select
 
 from mysrc.api.models import MTender, MOrganizationResponsible, MOrganization, MEmployee, TenderServiceType
-from mysrc.api.schemas import STenderCreate, Status
+from mysrc.api.schemas import STenderCreate, Status, STenderFilter
 from mysrc.dao_base import DAO
 
 
@@ -46,12 +46,12 @@ class TenderDAO(DAO):
 
         return m_tender
 
-    async def get_tenders_by_filter(self, limit: int, offset: int, service_type: TenderServiceType):
+    async def get_tenders_by_filter(self, tender_filter: STenderFilter):
         try:
             query = select(MTender).order_by(MTender.name)
-            if service_type:
-                query = query.filter(MTender.service_type == service_type)
-            query = query.limit(limit).offset(offset)
+            if tender_filter.service_type:
+                query = query.filter(MTender.service_type == tender_filter.service_type)
+            query = query.limit(tender_filter.limit).offset(tender_filter.offset)
             result = await self.db.execute(query)
             tenders = result.scalars().all()
             return tenders
