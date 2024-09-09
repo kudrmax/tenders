@@ -1,17 +1,10 @@
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
 from pydantic import BaseModel, UUID4
 
-from mysrc.api.models import TenderServiceType
-
-
-class ServiceType(str, Enum):
-    construction = "Construction"
-
-
-class Status(str, Enum):
-    created = "Created"
+from mysrc.api.models import TenderServiceType, TenderStatus
 
 
 class STenderCreate(BaseModel):
@@ -27,16 +20,17 @@ class STenderCreate(BaseModel):
     """
     name: str
     description: str
-    serviceType: ServiceType
-    status: Status
+    serviceType: TenderServiceType
+    status: TenderStatus
     organizationId: int
     creatorUsername: str
 
 
-class STenderLimitOffset(BaseModel):
-    limit: int = 5
-    offset: int = 0
-
-
-class STenderFilter(STenderLimitOffset):
-    service_type: Optional[TenderServiceType] = None
+class STenderRead(BaseModel):
+    id: int
+    name: str
+    description: str
+    status: str
+    serviceType: str
+    version: int
+    createdAt: datetime

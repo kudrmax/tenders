@@ -1,50 +1,59 @@
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from mysrc.api.models import MTender, MOrganizationResponsible, MOrganization, MEmployee, TenderServiceType
-from mysrc.api.schemas import STenderCreate, Status, STenderFilter
+from mysrc.api.models import MTender, MOrganizationResponsible, MOrganization, MEmployee, TenderServiceType, \
+    MTenderVersion
+from mysrc.api.schemas import STenderCreate, STenderRead
 from mysrc.dao_base import DAO
 
 
 class TenderDAO(DAO):
 
     async def create(self, tender: STenderCreate):
-        """
-        {
-          "name": "string",
-          "description": "string",
-          "serviceType": "Construction",
-          "status": "Created",
-          "organizationId": "550e8400-e29b-41d4-a716-446655440000",
-          "creatorUsername": "test_user"
-        }
-        """
-        # проверка существования организации
+        # проверка существования организации с tender.organizationId
         organization = await self.db.execute(select(MOrganization).where(MOrganization.id == tender.organizationId))
         organization = organization.scalar_one_or_none()
         if not organization:
-            raise HTTPException(status_code=404, detail="Organization not found")
+            raise HTTPException(status_code=404, detail="Организация не найдена.")
 
-        # поиск creator_id по username
+        # проверка существования пользователя с tender.creatorUsername
         creator = await self.db.execute(select(MEmployee).filter_by(username=tender.creatorUsername))
         creator = creator.scalar_one_or_none()
         if not creator:
-            raise HTTPException(status_code=404, detail="Creator not found")
+            raise HTTPException(status_code=404, detail="Пользователь не найден.")
 
-        # добавление в БД
-        m_tender = MTender(
-            name=tender.name,
-            description=tender.description,
-            service_type=tender.serviceType,
-            status=tender.status,
-            organization_id=tender.organizationId,
-            creator_id=creator.id,
-        )
-        self.db.add(m_tender)
-        await self.db.commit()
-        await self.db.refresh(m_tender)
+        # добавление тендера в БД
+        try:
+            m_tender = MTender(
+                status=tender.status,
+                organization_id=tender.organizationId,
+                creator_id=creator.id,
+            )
+            self.db.add(m_tender)
+            await self.db.commit()
+            await self.db.refresh(m_tender)
 
-        return m_tender
+            m_tender_version = MTenderVersion(
+                tender_id=m_tender.id,
+                name=tender.name,
+                description=tender.description,
+                service_type=tender.serviceType,
+                version=1,
+            )
+            self.db.add(m_tender)
+            await self.db.commit()
+            await self.db.refresh(m_tender)
+            return STenderRead(
+                id=m_tender.id,
+                name=m_tender_version.name,
+                description=m_tender_version.description,
+                status=m_tender.status,
+                serviceType=m_tender_version.service_type,
+                version=m_tender_version.version,
+                createdAt=m_tender.created_at,
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
     async def get_tenders_by_kwargs(self, **kwargs):
         try:

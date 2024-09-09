@@ -5,12 +5,20 @@ from pydantic import BaseModel
 
 from mysrc.api.dao import TenderDAO
 from mysrc.api.models import TenderServiceType
-from mysrc.api.schemas import STenderCreate, STenderFilter, STenderLimitOffset
+from mysrc.api.schemas import STenderCreate
 
 router = APIRouter(
     prefix="/api",
     tags=["Router"],
 )
+
+
+@router.post("/tender/new")
+async def create_tender(
+        tender: STenderCreate,
+        dao: TenderDAO = Depends()
+):
+    return await dao.create(tender)
 
 
 @router.get("/tenders/")
@@ -39,11 +47,3 @@ async def get_tenders_by_filter(
         offset=offset,
         username=username
     )
-
-
-@router.post("/tender/new")
-async def create_tender(
-        tender: STenderCreate,
-        dao: TenderDAO = Depends()
-):
-    return await dao.create(tender)
