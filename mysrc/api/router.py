@@ -15,19 +15,30 @@ router = APIRouter(
 
 @router.get("/tenders/")
 async def get_tenders_by_filter(
-        tender_filter: STenderFilter = Depends(),
+        limit: int = 5,
+        offset: int = 0,
+        service_type: Optional[TenderServiceType] = None,
         dao: TenderDAO = Depends()
 ):
-    return await dao.get_tenders_by_filter(tender_filter)
+    return await dao.get_tenders_by_kwargs(
+        limit=limit,
+        offset=offset,
+        service_type=service_type
+    )
 
 
 @router.get("/tenders/my")
 async def get_tenders_by_filter(
         username: str,
-        tender_filter: STenderLimitOffset = Depends(),
+        limit: int = 5,
+        offset: int = 0,
         dao: TenderDAO = Depends()
 ):
-    return await dao.get_tenders_by_filter(tender_filter)
+    return await dao.get_tenders_by_kwargs(
+        limit=limit,
+        offset=offset,
+        username=username
+    )
 
 
 @router.post("/tender/new")

@@ -46,12 +46,27 @@ class TenderDAO(DAO):
 
         return m_tender
 
-    async def get_tenders_by_filter(self, tender_filter: STenderFilter):
+    async def get_tenders_by_kwargs(self, **kwargs):
         try:
+            service_type = kwargs.get('service_type', None)
+            limit = kwargs.get('limit', None)
+            offset = kwargs.get('offset', None)
+            username = kwargs.get('username', None)
+
             query = select(MTender).order_by(MTender.name)
-            if tender_filter.service_type:
-                query = query.filter(MTender.service_type == tender_filter.service_type)
-            query = query.limit(tender_filter.limit).offset(tender_filter.offset)
+            if service_type:
+                query = query.filter(MTender.service_type == service_type)
+            if limit:
+                query = query.limit(limit)
+            if offset:
+                query = query.offset(offset)
+            if username:
+                creator = await self.db.execute(select(MEmployee).where(MEmployee.username == username))
+                creator = creator.scalar_one_or_none()
+                if not creator:
+                    raise HTTPException(status_code=404, detail="Creator not found")
+                query = query.filter(MTender.creator_id == creator.id)
+
             result = await self.db.execute(query)
             tenders = result.scalars().all()
             return tenders
