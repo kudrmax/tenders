@@ -22,7 +22,7 @@ async def create_tender(
 
 
 @router.get("/tenders/")
-async def get_tenders_by_filter(
+async def get_all_tenders_by_filter(
         limit: int = 5,
         offset: int = 0,
         service_type: Optional[TenderServiceType] = None,
@@ -36,7 +36,7 @@ async def get_tenders_by_filter(
 
 
 @router.get("/tenders/my")
-async def get_tenders_by_filter(
+async def get_tenders_by_user(
         username: str,
         limit: int = 5,
         offset: int = 0,

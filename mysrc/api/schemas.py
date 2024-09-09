@@ -30,7 +30,17 @@ class STenderRead(BaseModel):
     id: int
     name: str
     description: str
-    status: str
-    serviceType: str
+    status: TenderStatus
+    serviceType: TenderServiceType
     version: int
     createdAt: datetime
+
+
+class TenderLastVersionRead(BaseModel):
+    tender_id: int
+    status: TenderStatus
+    name: str
+    description: str
+    service_type: TenderServiceType
+    version: int
+    created_at: datetime
