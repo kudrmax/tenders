@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 
 from mysrc.api.dao import TenderDAO
-from mysrc.api.models import TenderServiceType
+from mysrc.api.models import TenderServiceType, TenderStatus
 from mysrc.api.schemas import STenderCreate
 
 router = APIRouter(
@@ -47,3 +47,23 @@ async def get_tenders_by_user(
         offset=offset,
         username=username
     )
+
+
+@router.get("/tenders/{tenderId}/status")
+async def get_tender_status_by_id(
+        tenderId: int,
+        username: str,
+        dao: TenderDAO = Depends()
+):
+    return await dao.get_tender_status_by_id(tenderId, username)
+
+
+@router.put("/tenders/{tenderId}/status")
+async def change_tender_status_by_id(
+        tenderId: int,
+        status: TenderStatus,
+        username: str,
+        dao: TenderDAO = Depends()
+):
+    return await dao.change_tender_status_by_id(tenderId, status, username)
+

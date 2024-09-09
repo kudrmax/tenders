@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, func, text
 
 from mysrc.api.models import MTender, MOrganizationResponsible, MOrganization, MEmployee, TenderServiceType, \
-    MTenderVersion
+    MTenderVersion, TenderStatus
 from mysrc.api.schemas import STenderCreate, STenderRead, TenderLastVersionRead
 from mysrc.dao_base import DAO
 
@@ -136,7 +136,7 @@ class TenderDAO(DAO):
     #     except Exception as e:
     #         raise HTTPException(status_code=500, detail=str(e))
 
-    async def get_tender_last_version(self, tender_id):
+    async def get_tender_last_version(self, tender_id: int):
         """
         SELECT mv.max_version
         FROM (
@@ -205,3 +205,23 @@ class TenderDAO(DAO):
             version=tender[6],
             created_at=tender[7],
         ) for tender in tenders]
+
+    async def _get_one_or_none_tender_by_id(self, tender_id: int):
+        query = select(MTender).where(MTender.id == tender_id)
+        m_tender = await self.db.execute(query)
+        tender = m_tender.scalar_one_or_none()
+        if not tender:
+            raise HTTPException(status_code=404, detail="Tender not found")
+        return tender
+
+    async def get_tender_status_by_id(self, tender_id: int, username: str):
+        m_tender = await self._get_one_or_none_tender_by_id(tender_id)
+        return m_tender.status
+
+    async def change_tender_status_by_id(self, tender_id: int, status: TenderStatus, username: str):
+        m_tender = await self._get_one_or_none_tender_by_id(tender_id)
+        if False:
+            raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
+        setattr(m_tender, 'status', status)
+        await self.db.commit()
+        return m_tender
