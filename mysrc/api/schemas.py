@@ -37,9 +37,9 @@ class STenderRead(BaseModel):
 
 
 class STenderUpdate(BaseModel):
-    name: str
-    description: str
-    serviceType: TenderServiceType
+    name: str | None = None
+    description: str | None = None
+    serviceType: TenderServiceType | None = None
 
 
 class TenderLastVersionRead(BaseModel):

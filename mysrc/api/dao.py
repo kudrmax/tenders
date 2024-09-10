@@ -136,7 +136,7 @@ class TenderDAO(DAO):
     #     except Exception as e:
     #         raise HTTPException(status_code=500, detail=str(e))
 
-    async def get_tender_last_version(self, tender_id: int):
+    async def get_tender_last_version_value(self, tender_id: int) -> int:
         """
         SELECT mv.max_version
         FROM (
@@ -159,8 +159,16 @@ class TenderDAO(DAO):
             .where(subquery.c.tender_id == tender_id)
         )
         result = await self.db.execute(query)
-        max_version = result.scalar()
+        max_version = result.scalar_one_or_none()
         return max_version
+
+    async def get_tender_last_version(self, tender_id: int) -> MTenderVersion:
+        last_version = await self.get_tender_last_version_value(tender_id)
+        query = select(MTenderVersion).where(MTenderVersion.tender_id == tender_id).where(MTenderVersion.version == last_version)
+        m_tender_version = await self.db.execute(query)
+        m_tender_version = m_tender_version.scalar_one_or_none()
+        return m_tender_version
+
 
     async def get_tenders_by_kwargs(self, **kwargs):
         service_type = kwargs.get('service_type', None)
@@ -219,20 +227,30 @@ class TenderDAO(DAO):
         return m_tender.status
 
     async def change_tender_status_by_id(self, tender_id: int, status: TenderStatus, username: str):
-        m_tender = await self._get_one_or_none_tender_by_id(tender_id)
         if False:
             raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
+        m_tender = await self._get_one_or_none_tender_by_id(tender_id)
         setattr(m_tender, 'status', status)
         await self.db.commit()
         return m_tender
 
     async def update_tender_by_id(self, tender_id: int, tender_update_data: STenderUpdate, username: str):
-        m_tender = await self._get_one_or_none_tender_by_id(tender_id)
         if False:
             raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
+        m_tender_last_version = await self.get_tender_last_version(tender_id)
+        if not m_tender_last_version:
+            raise HTTPException(status_code=404, detail='Tender version not found')
+        if tender_update_data.model_dump(exclude_unset=True) == {}:
+            pass
+        m_new_tender_version = MTenderVersion(
+            tender_id=tender_id,
+            version=m_tender_last_version.version + 1,
+            name=m_tender_last_version.name,
+            description=m_tender_last_version.description,
+            service_type=m_tender_last_version.service_type,
+        )
         for key, value in tender_update_data.model_dump(exclude_unset=True).items():
-            setattr(m_tender, key, value)
+            setattr(m_new_tender_version, key, value)
+        self.db.add(m_new_tender_version)
         await self.db.commit()
-        return m_tender
-
-
+        return m_new_tender_version
