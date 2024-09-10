@@ -1,10 +1,11 @@
 import asyncio
 
 from fastapi import HTTPException
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, desc
 
-from mysrc.api.dao import DAO, EmployeeCRUD, OrganizationCRUD
-from mysrc.api.tenders.models import MTender, MOrganization, MEmployee, MTenderVersion, TenderStatus, TenderServiceType
+from mysrc.api.dao import DAO
+from mysrc.api.organisations.dao import OrganizationCRUD, EmployeeCRUD
+from mysrc.api.tenders.models import TenderServiceType, TenderStatus, MTender, MTenderVersion
 from mysrc.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
 from mysrc.database import AsyncSessionLocal
 

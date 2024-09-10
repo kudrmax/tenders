@@ -8,7 +8,7 @@ from mysrc.api.tenders.schemas import STenderCreate, STenderUpdate
 
 router = APIRouter(
     prefix="/api",
-    tags=["Router"],
+    tags=["Tenders"],
 )
 
 
