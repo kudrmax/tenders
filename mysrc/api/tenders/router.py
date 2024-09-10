@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from mysrc.api.tenders.dao import TenderDAO
 from mysrc.api.tenders.models import TenderServiceType, TenderStatus
-from mysrc.api.tenders.schemas import STenderCreate, STenderUpdate
+from mysrc.api.tenders.schemas import STenderCreate, STenderUpdate, STenderRead
 
 router = APIRouter(
     prefix="/api",
@@ -16,7 +16,7 @@ router = APIRouter(
 async def create_tender(
         tender: STenderCreate,
         dao: TenderDAO = Depends()
-):
+) -> STenderRead:
     return await dao.create_tender(tender)
 
 

@@ -25,4 +25,3 @@ class MEmployee(Base):
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
-    # organizations = relationship('OrganizationResponsible', back_populates='employee')

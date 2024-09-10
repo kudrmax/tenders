@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy import select, desc
 
 from mysrc.api.dao import DAO
-from mysrc.api.organisations.dao import OrganizationCRUD, EmployeeCRUD
+from mysrc.api.organisations.dao import OrganizationCRUD
+from mysrc.api.employees.dao import EmployeeCRUD
 from mysrc.api.tenders.models import TenderServiceType, TenderStatus, MTender, MTenderVersion
 from mysrc.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
 from mysrc.database import AsyncSessionLocal
@@ -111,7 +112,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
             raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
         return True
 
-    async def create_tender(self, tender: STenderCreate):
+    async def create_tender(self, tender: STenderCreate) -> STenderRead:
         # проверка существования организации с id=tender.organizationId
         await self._get_organisation_by_id(organization_id=tender.organizationId)
 

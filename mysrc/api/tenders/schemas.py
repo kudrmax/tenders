@@ -6,16 +6,6 @@ from mysrc.api.tenders.models import TenderServiceType, TenderStatus
 
 
 class STenderCreate(BaseModel):
-    """
-    {
-      "name": "string",
-      "description": "string",
-      "serviceType": "Construction",
-      "status": "Created",
-      "organizationId": "550e8400-e29b-41d4-a716-446655440000",
-      "creatorUsername": "test_user"
-    }
-    """
     name: str
     description: str
     serviceType: TenderServiceType
