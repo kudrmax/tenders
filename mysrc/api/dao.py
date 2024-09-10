@@ -162,13 +162,18 @@ class TenderDAO(DAO):
         max_version = result.scalar_one_or_none()
         return max_version
 
-    async def get_tender_last_version(self, tender_id: int) -> MTenderVersion:
-        last_version = await self.get_tender_last_version_value(tender_id)
-        query = select(MTenderVersion).where(MTenderVersion.tender_id == tender_id).where(MTenderVersion.version == last_version)
+    async def _get_tender_version_by_version(self, tender_id: int, version: int) -> MTenderVersion:
+        query = select(MTenderVersion).where(MTenderVersion.tender_id == tender_id).where(
+            MTenderVersion.version == version)
         m_tender_version = await self.db.execute(query)
         m_tender_version = m_tender_version.scalar_one_or_none()
+        if not m_tender_version:
+            raise HTTPException(status_code=404)
         return m_tender_version
 
+    async def get_tender_last_version(self, tender_id: int) -> MTenderVersion:
+        last_version = await self.get_tender_last_version_value(tender_id)
+        return await self._get_tender_version_by_version(tender_id, last_version)
 
     async def get_tenders_by_kwargs(self, **kwargs):
         service_type = kwargs.get('service_type', None)
@@ -251,6 +256,24 @@ class TenderDAO(DAO):
         )
         for key, value in tender_update_data.model_dump(exclude_unset=True).items():
             setattr(m_new_tender_version, key, value)
+        self.db.add(m_new_tender_version)
+        await self.db.commit()
+        return m_new_tender_version
+
+    async def rollback_tender(self, tender_id: int, version: int, username: str):
+        if False:
+            raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
+        m_tender_version = await self._get_tender_version_by_version(tender_id, version)
+        last_version = await self.get_tender_last_version_value(tender_id)
+        if not m_tender_version:
+            raise HTTPException(status_code=404, detail='Tender version not found')
+        m_new_tender_version = MTenderVersion(
+            tender_id=tender_id,
+            version=last_version + 1,
+            name=m_tender_version.name,
+            description=m_tender_version.description,
+            service_type=m_tender_version.service_type,
+        )
         self.db.add(m_new_tender_version)
         await self.db.commit()
         return m_new_tender_version

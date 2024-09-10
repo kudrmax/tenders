@@ -76,3 +76,13 @@ async def change_tender_status_by_id(
         dao: TenderDAO = Depends()
 ):
     return await dao.update_tender_by_id(tenderId, tender_update_data, username)
+
+
+@router.put("/tenders/{tenderId}/rollback/{version}")
+async def change_tender_status_by_id(
+        tenderId: int,
+        version: int,
+        username: str,
+        dao: TenderDAO = Depends()
+):
+    return await dao.rollback_tender(tenderId, version, username)
