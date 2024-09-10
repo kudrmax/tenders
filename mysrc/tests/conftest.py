@@ -33,7 +33,7 @@ def event_loop():
 async def setup_test_db():
     if os.path.exists(DB_TEST_PATH):
         os.remove(DB_TEST_PATH)
-    sync_engine = create_engine(DB_TEST_URL_SYNC, echo=True)
+    sync_engine = create_engine(DB_TEST_URL_SYNC, echo=False)
     Base.metadata.create_all(bind=sync_engine)
 
 
