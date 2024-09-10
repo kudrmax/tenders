@@ -1,10 +1,8 @@
 from datetime import datetime
-from enum import Enum
-from typing import Optional
 
-from pydantic import BaseModel, UUID4
+from pydantic import BaseModel
 
-from mysrc.api.models import TenderServiceType, TenderStatus
+from mysrc.api.tenders.models import TenderServiceType, TenderStatus
 
 
 class STenderCreate(BaseModel):

@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from mysrc.database import get_db
 
 
-class DAO:
+class OldDAO:
     model = None
 
     def __init__(self, db=Depends(get_db)):

@@ -2,9 +2,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
-from mysrc.api.router import router
-from mysrc.api.init_db import router as router_init_db
-import mysrc.api.models
+from mysrc.api.tenders.router import router
+from mysrc.api.tenders.init_db import router as router_init_db
 from mysrc.database import init_db
 
 app = FastAPI(title='Avito')

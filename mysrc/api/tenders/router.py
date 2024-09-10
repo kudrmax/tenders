@@ -1,11 +1,10 @@
-from typing import Optional, List
+from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends
 
-from mysrc.api.dao import TenderDAO
-from mysrc.api.models import TenderServiceType, TenderStatus
-from mysrc.api.schemas import STenderCreate, STenderUpdate
+from mysrc.api.tenders.dao import TenderDAO
+from mysrc.api.tenders.models import TenderServiceType, TenderStatus
+from mysrc.api.tenders.schemas import STenderCreate, STenderUpdate
 
 router = APIRouter(
     prefix="/api",
@@ -18,7 +17,7 @@ async def create_tender(
         tender: STenderCreate,
         dao: TenderDAO = Depends()
 ):
-    return await dao.create(tender)
+    return await dao.create_tender(tender)
 
 
 @router.get("/tenders/")

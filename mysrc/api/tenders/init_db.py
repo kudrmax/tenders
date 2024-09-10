@@ -1,10 +1,7 @@
-import uuid
-
 from fastapi import Depends, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from mysrc.database import get_db
-from mysrc.api.models import MEmployee, MOrganization, MOrganizationResponsible
+from mysrc.api.tenders.models import MEmployee, MOrganization
 
 
 async def create_objects(db: AsyncSession):
