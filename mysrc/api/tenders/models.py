@@ -29,8 +29,8 @@ class MTender(Base):
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 
-class MTenderVersion(Base):
-    __tablename__ = 'tender_version'
+class MTenderData(Base):
+    __tablename__ = 'tender_data'
 
     # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     id = Column(Integer, primary_key=True)

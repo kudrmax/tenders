@@ -1,11 +1,11 @@
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from mysrc.api.dao import DAO, CRUD
+from mysrc.api.dao import DAO
 from mysrc.api.employees.models import MEmployee
 
 
-class EmployeeCRUD(CRUD):
+class EmployeeCRUD(DAO):
     crud_model = MEmployee
 
     async def _get_employee_by_username(self, username: str) -> MEmployee:

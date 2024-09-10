@@ -6,7 +6,7 @@ from sqlalchemy import select, desc
 from mysrc.api.dao import DAO
 from mysrc.api.organisations.dao import OrganizationCRUD
 from mysrc.api.employees.dao import EmployeeCRUD
-from mysrc.api.tenders.models import TenderServiceType, TenderStatus, MTender, MTenderVersion
+from mysrc.api.tenders.models import TenderServiceType, TenderStatus, MTender, MTenderData
 from mysrc.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
 from mysrc.database import AsyncSessionLocal
 
@@ -27,18 +27,18 @@ class TenderCRUD(DAO):
 
     async def _add_tender_to_tender_data_db(
             self, tender_id: int, name: str, description: str, service_type: TenderServiceType, version: int, **kwargs
-    ) -> MTenderVersion:
-        m_tender_version = MTenderVersion(
+    ) -> MTenderData:
+        m_tender_data = MTenderData(
             tender_id=tender_id,
             name=name,
             description=description,
             service_type=service_type,
             version=version,
         )
-        self.db.add(m_tender_version)
+        self.db.add(m_tender_data)
         await self.db.commit()
-        await self.db.refresh(m_tender_version)
-        return m_tender_version
+        await self.db.refresh(m_tender_data)
+        return m_tender_data
 
     async def _get_tender_by_id(self, tender_id: int) -> MTender:
         query = select(MTender).where(MTender.id == tender_id)
@@ -48,24 +48,24 @@ class TenderCRUD(DAO):
             raise HTTPException(status_code=404, detail=f"Tender with id={tender_id} not found")
         return m_tender
 
-    async def _get_tender_data_with_last_version_by_id(self, tender_id: int) -> MTenderVersion:
+    async def _get_tender_data_with_last_version_by_id(self, tender_id: int) -> MTenderData:
         query = (
-            select(MTenderVersion).
-            where(MTenderVersion.tender_id == tender_id).
-            order_by(desc(MTenderVersion.version)).
+            select(MTenderData).
+            where(MTenderData.tender_id == tender_id).
+            order_by(desc(MTenderData.version)).
             limit(1)
         )
-        tender_data_with_last_version = await self.db.execute(query)
-        tender_data_with_last_version = tender_data_with_last_version.scalar_one_or_none()
-        if not tender_data_with_last_version:
+        m_tender_data_with_last_version = await self.db.execute(query)
+        m_tender_data_with_last_version = m_tender_data_with_last_version.scalar_one_or_none()
+        if not m_tender_data_with_last_version:
             raise HTTPException(status_code=404, detail=f"Tender data for tender with id={tender_id} not found.")
-        return tender_data_with_last_version
+        return m_tender_data_with_last_version
 
-    async def _get_tender_data_by_version(self, tender_id: int, version: int) -> MTenderVersion:
+    async def _get_tender_data_by_version(self, tender_id: int, version: int) -> MTenderData:
         query = (
-            select(MTenderVersion).
-            where(MTenderVersion.tender_id == tender_id).
-            where(MTenderVersion.version == version)
+            select(MTenderData).
+            where(MTenderData.tender_id == tender_id).
+            where(MTenderData.version == version)
         )
         m_tender_data = await self.db.execute(query)
         m_tender_data = m_tender_data.scalar_one_or_none()
@@ -80,7 +80,7 @@ class TenderCRUD(DAO):
             self,
             tender_id: int | None = None,
             tender: MTender | None = None,
-            tender_data: MTenderVersion | None = None,
+            tender_data: MTenderData | None = None,
     ) -> STenderRead:
         if not tender_id:
             if tender:
@@ -133,7 +133,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
             service_type=tender.serviceType,
             version=1,
         )
-        m_tender_version = await self._add_tender_to_tender_data_db(
+        m_tender_data = await self._add_tender_to_tender_data_db(
             tender_id=m_tender.id,
             name=tender.name,
             description=tender.description,
@@ -141,7 +141,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
             version=1,
         )
 
-        return await self.get_response_schema(tender=m_tender, tender_data=m_tender_version)
+        return await self.get_response_schema(tender=m_tender, tender_data=m_tender_data)
 
     async def update_tender_by_id(self, tender_id: int, tender_update_data: STenderUpdate, username: str):
         # проверка прав доступа
@@ -194,26 +194,15 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         return m_tender
 
     async def rollback_tender(self, tender_id: int, version: int, username: str):
-        m_tender_data_version = await self._get_tender_data_by_version(tender_id, version)
-        m_tender_data__with_last_version = await self._get_tender_data_with_last_version_by_id(tender_id)
-        m_new_tender_data = MTenderVersion(
+        m_tender_data_with_given_version = await self._get_tender_data_by_version(tender_id, version)
+        m_tender_data_with_last_version = await self._get_tender_data_with_last_version_by_id(tender_id)
+        m_new_tender_data = MTenderData(
             tender_id=tender_id,
-            version=m_tender_data__with_last_version.version + 1,
-            name=m_tender_data_version.name,
-            description=m_tender_data_version.description,
-            service_type=m_tender_data_version.service_type,
+            version=m_tender_data_with_last_version.version + 1,
+            name=m_tender_data_with_given_version.name,
+            description=m_tender_data_with_given_version.description,
+            service_type=m_tender_data_with_given_version.service_type,
         )
         self.db.add(m_new_tender_data)
         await self.db.commit()
         return m_new_tender_data
-
-
-async def main():
-    db = AsyncSessionLocal()
-    tender_dao = TenderDAO(db=db)
-    res = await tender_dao._get_tender_data_with_last_version(1)
-    print(res)
-
-
-if __name__ == '__main__':
-    asyncio.run(main())
