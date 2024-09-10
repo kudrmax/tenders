@@ -29,5 +29,10 @@ HELP.md
 ### VS Code ###
 .vscode/
 .DS_Store
-mysrc/__pycache__
-mysrc/api/__pycache__
+
+###
+__pycache__
+*/__pycache__
+*/*/__pycache__
+*/*/*/__pycache__
+*/*/*/*/__pycache__
