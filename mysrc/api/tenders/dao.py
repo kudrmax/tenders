@@ -166,42 +166,58 @@ class TenderDAO(TenderCRUD):
         offset: int | None = kwargs.get('offset', None)
         username: str | None = kwargs.get('username', None)
 
-        query = select(MTenderVersion)
-        query = query.join(MTender, MTenderVersion.tender_id == MTender.id)
-        query = query.add_columns(
-            MTender.id,
-            MTender.status,
-            MTenderVersion.name,
-            MTenderVersion.description,
-            MTenderVersion.service_type,
-            MTenderVersion.version,
-            MTender.created_at,
-        )
-
-        if service_type:
-            query = query.filter(MTenderVersion.service_type == service_type)
+        query = select(MTender)
         if username:
             creator = await self._get_employee_by_username(username=username)
             query = query.filter(MTender.creator_id == creator.id)
-        query = query.order_by(MTenderVersion.name)
-        if offset:
-            query = query.offset(offset)
-        if limit:
-            query = query.limit(limit)
+        m_tenders = await self.db.execute(query)
+        m_tenders = m_tenders.scalars()
 
-        tenders = await self.db.execute(query)
-        tenders = tenders.fetchall()
-        print('========== TENDERS ==========')
-        print(tenders)
-        return [STenderRead(
-            id=tender[1],
-            status=tender[2],
-            name=tender[3],
-            description=tender[4],
-            serviceType=tender[5],
-            version=tender[6],
-            createdAt=tender[7],
-        ) for tender in tenders]
+        tender_schemas = []
+        for m_tender in m_tenders:
+            m_tender_data = await self._get_tender_data_with_last_version_by_id(m_tender.id)
+            if not service_type or (service_type and m_tender_data.service_type == service_type):
+                tender_schemas.append(await self.get_response_schema(tender=m_tender, tender_data=m_tender_data))
+
+        tender_schemas.sort(key=lambda x: x.name)
+        return tender_schemas[offset:offset + limit]
+
+        # query = select(MTenderVersion)
+        # query = query.join(MTender, MTenderVersion.tender_id == MTender.id)
+        # query = query.add_columns(
+        #     MTender.id,
+        #     MTender.status,
+        #     MTenderVersion.name,
+        #     MTenderVersion.description,
+        #     MTenderVersion.service_type,
+        #     MTenderVersion.version,
+        #     MTender.created_at,
+        # )
+
+        # if service_type:
+        #     query = query.filter(MTenderVersion.service_type == service_type)
+        # if username:
+        #     creator = await self._get_employee_by_username(username=username)
+        #     query = query.filter(MTender.creator_id == creator.id)
+        # query = query.order_by(MTenderVersion.name)
+        # if offset:
+        #     query = query.offset(offset)
+        # if limit:
+        #     query = query.limit(limit)
+        #
+        # tenders = await self.db.execute(query)
+        # tenders = tenders.fetchall()
+        # print('========== TENDERS ==========')
+        # print(tenders)
+        # return [STenderRead(
+        #     id=tender[1],
+        #     status=tender[2],
+        #     name=tender[3],
+        #     description=tender[4],
+        #     serviceType=tender[5],
+        #     version=tender[6],
+        #     createdAt=tender[7],
+        # ) for tender in tenders]
 
     # async def get_tender_last_version_value(self, tender_id: int) -> int:
     #     """
