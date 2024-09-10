@@ -147,10 +147,10 @@ class TenderDAO(TenderCRUD):
         await self._check_auth(username=username)
 
         # получение данных последней версии по тендеру
-        m_tender_last_version = await self._get_tender_data_with_last_version_by_id(tender_id)
+        m_tender_data_with_last_version = await self._get_tender_data_with_last_version_by_id(tender_id)
 
         # обновление данных тендера
-        new_tender_data = {**m_tender_last_version.__dict__}
+        new_tender_data = {**m_tender_data_with_last_version.__dict__}
         for key, value in tender_update_data.model_dump(exclude_unset=True).items():
             new_tender_data[key] = value
         new_tender_data['version'] += 1
@@ -182,181 +182,29 @@ class TenderDAO(TenderCRUD):
         tender_schemas.sort(key=lambda x: x.name)
         return tender_schemas[offset:offset + limit]
 
-        # query = select(MTenderVersion)
-        # query = query.join(MTender, MTenderVersion.tender_id == MTender.id)
-        # query = query.add_columns(
-        #     MTender.id,
-        #     MTender.status,
-        #     MTenderVersion.name,
-        #     MTenderVersion.description,
-        #     MTenderVersion.service_type,
-        #     MTenderVersion.version,
-        #     MTender.created_at,
-        # )
-
-        # if service_type:
-        #     query = query.filter(MTenderVersion.service_type == service_type)
-        # if username:
-        #     creator = await self._get_employee_by_username(username=username)
-        #     query = query.filter(MTender.creator_id == creator.id)
-        # query = query.order_by(MTenderVersion.name)
-        # if offset:
-        #     query = query.offset(offset)
-        # if limit:
-        #     query = query.limit(limit)
-        #
-        # tenders = await self.db.execute(query)
-        # tenders = tenders.fetchall()
-        # print('========== TENDERS ==========')
-        # print(tenders)
-        # return [STenderRead(
-        #     id=tender[1],
-        #     status=tender[2],
-        #     name=tender[3],
-        #     description=tender[4],
-        #     serviceType=tender[5],
-        #     version=tender[6],
-        #     createdAt=tender[7],
-        # ) for tender in tenders]
-
-    # async def get_tender_last_version_value(self, tender_id: int) -> int:
-    #     """
-    #     SELECT mv.max_version
-    #     FROM (
-    #         SELECT tender_id, MAX(version) AS max_version
-    #         FROM tender_version
-    #         GROUP BY tender_id
-    #     ) mv
-    #     WHERE mv.tender_id == tender_id
-    #     """
-    #     subquery = (
-    #         select(
-    #             MTenderVersion.tender_id,
-    #             func.max(MTenderVersion.version).label('max_version')
-    #         )
-    #         .group_by(MTenderVersion.tender_id)
-    #         .subquery()
-    #     )
-    #     query = (
-    #         select(subquery.c.max_version)
-    #         .where(subquery.c.tender_id == tender_id)
-    #     )
-    #     result = await self.db.execute(query)
-    #     max_version = result.scalar_one_or_none()
-    #     return max_version
-
-    # async def get_tender_last_version(self, tender_id: int) -> MTenderVersion:
-    #     last_version = await self.get_tender_last_version_value(tender_id)
-    #     return await self._get_tender_version_by_version(tender_id, last_version)
-
-    # async def get_tender_last_version(self, tender_id: int):
-    #     """
-    #     # вариант 1
-    #     SELECT *
-    #     FROM tender t
-    #     JOIN (
-    #         SELECT tender_id, MAX(version) AS max_version
-    #         FROM tender_version
-    #         GROUP BY tender_id
-    #     ) mv ON t.id = mv.tender_id
-    #     JOIN tender_version tv ON t.id = tv.tender_id
-    #     WHERE tv.version = mv.max_version;
-    #
-    #     # вариант 2
-    #     SELECT t.*, tv.*
-    #     FROM tender t
-    #     JOIN (
-    #         SELECT tender_id, MAX(version) AS max_version
-    #         FROM tender_version
-    #         GROUP BY tender_id
-    #     ) mv ON t.id = mv.tender_id
-    #     JOIN tender_version tv ON t.id = tv.tender_id AND tv.version = mv.max_version;
-    #     """
-    # sql_query = """
-    # SELECT t.*, tv.*
-    # FROM tender t
-    # JOIN (
-    #     SELECT tender_id, MAX(version) AS max_version
-    #     FROM tender_version
-    #     GROUP BY tender_id
-    # ) mv ON t.id = mv.tender_id
-    # JOIN tender_version tv ON t.id = tv.tender_id AND tv.version = mv.max_version;
-    # """
-    #
-    # async with self.db as session:
-    #     result = await session.execute(text(sql_query))
-    #     rows = result.fetchall()
-    #     return [TenderLastVersion(**dict(row)) for row in rows]
-    # try:
-    #     subquery = (
-    #         select(MTenderVersion.tender_id, func.max(MTenderVersion.version).label('max_version'))
-    #         .group_by(MTenderVersion.tender_id)
-    #         .subquery()
-    #     )
-    #
-    #     query = (
-    #         select(MTender, MTenderVersion)
-    #         .join(subquery, MTender.id == subquery.c.tender_id)
-    #         .join(
-    #             MTenderVersion,
-    #             (MTender.id == MTenderVersion.tender_id) & (MTenderVersion.version == subquery.c.max_version)
-    #         )
-    #     )
-    # except Exception as e:
-    #     pass
-
-    # async def get_latest_tender_versions_orm(self):
-    #     try:
-    #         # Подзапрос для нахождения максимальной версии для каждого тендера
-    #         subquery = (
-    #             select(MTenderVersion.tender_id, func.max(MTenderVersion.version).label('max_version'))
-    #             .group_by(MTenderVersion.tender_id)
-    #             .subquery()
-    #         )
-    #
-    #         # Основной запрос с JOIN
-    #         query = (
-    #             select(MTender, MTenderVersion)
-    #             .join(subquery, MTender.id == subquery.c.tender_id)
-    #             .join(MTenderVersion,
-    #                   (MTender.id == MTenderVersion.tender_id) & (MTenderVersion.version == subquery.c.max_version))
-    #         )
-    #
-    #         result = await self.db.execute(query)
-    #         tenders_with_latest_versions = result.all()
-    #         return tenders_with_latest_versions
-    #     except Exception as e:
-    #         raise HTTPException(status_code=500, detail=str(e))
-
     async def get_tender_status_by_id(self, tender_id: int, username: str):
         m_tender = await self._get_tender_by_id(tender_id)
         return m_tender.status
 
     async def change_tender_status_by_id(self, tender_id: int, status: TenderStatus, username: str):
-        if False:
-            raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
         m_tender = await self._get_tender_by_id(tender_id)
         setattr(m_tender, 'status', status)
         await self.db.commit()
         return m_tender
 
     async def rollback_tender(self, tender_id: int, version: int, username: str):
-        if False:
-            raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
-        m_tender_version = await self._get_tender_version_by_version(tender_id, version)
-        last_version = await self.get_tender_last_version_value(tender_id)
-        if not m_tender_version:
-            raise HTTPException(status_code=404, detail='Tender version not found')
-        m_new_tender_version = MTenderVersion(
+        m_tender_data_version = await self._get_tender_data_by_version(tender_id, version)
+        m_tender_data__with_last_version = await self._get_tender_data_with_last_version_by_id(tender_id)
+        m_new_tender_data = MTenderVersion(
             tender_id=tender_id,
-            version=last_version + 1,
-            name=m_tender_version.name,
-            description=m_tender_version.description,
-            service_type=m_tender_version.service_type,
+            version=m_tender_data__with_last_version.version + 1,
+            name=m_tender_data_version.name,
+            description=m_tender_data_version.description,
+            service_type=m_tender_data_version.service_type,
         )
-        self.db.add(m_new_tender_version)
+        self.db.add(m_new_tender_data)
         await self.db.commit()
-        return m_new_tender_version
+        return m_new_tender_data
 
 
 async def main():
