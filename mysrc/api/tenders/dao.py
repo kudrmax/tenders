@@ -3,10 +3,9 @@ import asyncio
 from fastapi import HTTPException
 from sqlalchemy import select, func, desc
 
-from mysrc.api.dao import DAO
+from mysrc.api.dao import DAO, EmployeeCRUD, OrganizationCRUD
 from mysrc.api.tenders.models import MTender, MOrganization, MEmployee, MTenderVersion, TenderStatus, TenderServiceType
 from mysrc.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
-from mysrc.api.dao_base import OldDAO
 from mysrc.database import AsyncSessionLocal
 
 
@@ -105,7 +104,7 @@ class TenderCRUD(DAO):
         )
 
 
-class TenderDAO(TenderCRUD):
+class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
     async def _check_auth(self, username: str):
         if False:
             raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
