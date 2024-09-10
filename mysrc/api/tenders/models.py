@@ -102,7 +102,7 @@ class MTender(Base):
     status = Column(String, nullable=False)
     organization_id = Column(Integer, ForeignKey('organization.id'), nullable=False)
     creator_id = Column(Integer, ForeignKey('employee.id'), nullable=False)
-    created_id = Column(TIMESTAMP, server_default=func.current_timestamp())
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 

@@ -4,7 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, func
 
 from mysrc.api.tenders.models import MTender, MOrganization, MEmployee, MTenderVersion, TenderStatus
-from mysrc.api.tenders.schemas import STenderCreate, STenderRead, TenderLastVersionRead, STenderUpdate
+from mysrc.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
 from mysrc.api.dao_base import OldDAO
 
 from mysrc.database import get_db

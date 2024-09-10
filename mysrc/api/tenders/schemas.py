@@ -38,13 +38,3 @@ class STenderUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
     serviceType: TenderServiceType | None = None
-
-
-class TenderLastVersionRead(BaseModel):
-    tender_id: int
-    status: TenderStatus
-    name: str
-    description: str
-    service_type: TenderServiceType
-    version: int
-    created_at: datetime
