@@ -29,14 +29,11 @@ def event_loop():
     loop.close()
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope='function', autouse=True)
 async def setup_test_db():
-    async_engine = create_async_engine(DB_TEST_URL, future=True, echo=False)
+    if os.path.exists(DB_TEST_PATH):
+        os.remove(DB_TEST_PATH)
     sync_engine = create_engine(DB_TEST_URL_SYNC, echo=True)
-    AsyncSessionLocal = sessionmaker(
-        async_engine, expire_on_commit=False, autocommit=False, autoflush=False, class_=AsyncSession
-    )
-
     Base.metadata.create_all(bind=sync_engine)
 
 
