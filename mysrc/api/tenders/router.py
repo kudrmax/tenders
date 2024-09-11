@@ -68,7 +68,7 @@ async def change_tender_status_by_id(
 
 
 @router.patch("/tenders/{tenderId}/edit")
-async def change_tender_status_by_id(
+async def edit_tender(
         tenderId: int,
         tender_update_data: STenderUpdate,
         username: str,
@@ -78,7 +78,7 @@ async def change_tender_status_by_id(
 
 
 @router.put("/tenders/{tenderId}/rollback/{version}")
-async def change_tender_status_by_id(
+async def rollback_tender(
         tenderId: int,
         version: int,
         username: str,

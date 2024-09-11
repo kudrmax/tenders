@@ -119,20 +119,14 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         # проверка существования пользователя с username=tender.creatorUsername
         creator = await self._get_employee_by_username(username=tender.creatorUsername)
 
-        # добавление тендера в БД тендеров
+        # добавление тендера в БД тендеров (MTender)
         m_tender = await self._add_tender_to_tender_db(
             status=tender.status,
             organization_id=tender.organizationId,
             creator_id=creator.id,
         )
-        # добавление тендера в БД версий тендеров
-        await self._add_tender_to_tender_data_db(
-            tender_id=m_tender.id,
-            name=tender.name,
-            description=tender.description,
-            service_type=tender.serviceType,
-            version=1,
-        )
+
+        # добавление тендера в БД версий тендеров (MTenderData)
         m_tender_data = await self._add_tender_to_tender_data_db(
             tender_id=m_tender.id,
             name=tender.name,
