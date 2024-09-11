@@ -1,4 +1,5 @@
 import asyncio
+from typing import List
 
 from fastapi import HTTPException
 from sqlalchemy import select, desc
@@ -99,11 +100,6 @@ class TenderCRUD(DAO):
 
 
 class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
-    async def _check_auth(self, username: str):
-        if False:
-            raise HTTPException(status_code=402, detail="Недостаточно прав для выполнения действия.")
-        return True
-
     async def create_tender(self, tender: STenderCreate) -> STenderRead:
         # проверка существования организации с id=tender.organizationId
         await self._get_organisation_by_id(organization_id=tender.organizationId)
@@ -131,7 +127,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
 
     async def update_tender_by_id(self, tender_id: int, tender_update_data: STenderUpdate, username: str):
         # проверка прав доступа
-        # await self._check_auth(username=username)
+        await self.check_access_rights(username=username, tender_id=tender_id)
 
         # получение данных последней версии по тендеру
         m_tender_data_with_last_version = await self._get_obj_data_with_last_version_by_id(tender_id)
@@ -153,33 +149,67 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         offset: int | None = kwargs.get('offset', None)
         username: str | None = kwargs.get('username', None)
 
+        # if username:
+        #     creator = await self._get_employee_by_username(username=username)
+        #     query = query.filter(MTender.creator_id == creator.id)
         query = select(MTender)
-        if username:
-            creator = await self._get_employee_by_username(username=username)
-            query = query.filter(MTender.creator_id == creator.id)
         m_tenders = await self.db.execute(query)
         m_tenders = m_tenders.scalars()
 
         tender_schemas = []
         for m_tender in m_tenders:
             m_tender_data = await self._get_obj_data_with_last_version_by_id(m_tender.id)
-            if not service_type or (service_type and m_tender_data.service_type == service_type):
-                tender_schemas.append(await self.get_response_schema(tender=m_tender, tender_data=m_tender_data))
+
+            # фильтер на service_type
+            if service_type and m_tender_data.service_type != service_type:
+                continue
+
+            # фильтер на права доступа
+            # показать тендер если пользователь ответственный за организацию или есть статус тендера == Published
+            if username:
+                is_responsible = await self.check_is_user_responsible(
+                    organization_id=m_tender.organization_id,
+                    user_id=(await self._get_employee_by_username(username=username)).id
+                )
+                tender_status = m_tender.status
+                if not (is_responsible or tender_status == TenderStatus.published):
+                    continue
+
+            tender_schemas.append(
+                await self.get_response_schema(tender=m_tender, tender_data=m_tender_data)
+            )
 
         tender_schemas.sort(key=lambda x: x.name)
         return tender_schemas[offset:offset + limit]
 
     async def get_tender_status_by_id(self, tender_id: int, username: str):
         m_tender = await self._get_obj_by_id(tender_id)
+        if m_tender.status == 'Published':
+            return m_tender.status
+        if not await self.check_access_rights(username=username, m_tender=m_tender):
+            raise HTTPException(
+                status_code=403,
+                detail=f'The user with {username=} does not have access to this operation.'
+            )
         return m_tender.status
 
     async def change_tender_status_by_id(self, tender_id: int, status: TenderStatus, username: str):
         m_tender = await self._get_obj_by_id(tender_id)
+        if not await self.check_access_rights(username=username, m_tender=m_tender):
+            raise HTTPException(
+                status_code=403,
+                detail=f'The user with {username=} does not have access to this operation.'
+            )
         setattr(m_tender, 'status', status)
         await self.db.commit()
-        return m_tender
+        return await self.get_response_schema(tender=m_tender)
 
     async def rollback_tender(self, tender_id: int, version: int, username: str):
+        if not await self.check_access_rights(username=username, tender_id=tender_id):
+            raise HTTPException(
+                status_code=403,
+                detail=f'The user with {username=} does not have access to this operation.'
+            )
         m_tender_data_with_given_version = await self._get_obj_data_by_version(tender_id, version)
         m_tender_data_with_last_version = await self._get_obj_data_with_last_version_by_id(tender_id)
         m_new_tender_data = MTenderData(
@@ -193,14 +223,26 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         await self.db.commit()
         return m_new_tender_data
 
-    async def check_access_rights(self, tender_id: int, username: str):
+    async def check_access_rights(
+            self,
+            username: str,
+            tender_id: int | None = None,
+            m_tender: MTender | None = None,
+    ) -> None:
         """
         Проверка является ли пользователь с username=username ответственным за оргазинацию для тендера с id=tender_id
         """
-        m_tender: MTender = await self._get_obj_by_id(tender_id=tender_id)
+        if not m_tender:
+            if not tender_id:
+                raise HTTPException(status_code=500, detail="One of tender_id, tender must be provided.")
+            m_tender: MTender = await self._get_obj_by_id(tender_id=tender_id)
         organization_id = m_tender.organization_id
 
         m_employee = await self._get_employee_by_username(username=username)
         user_id = m_employee.id
 
-        return await self.check_is_user_responsible(organization_id=organization_id, user_id=user_id)
+        if not await self.check_is_user_responsible(organization_id=organization_id, user_id=user_id):
+            raise HTTPException(
+                status_code=403,
+                detail=f'The user with {username=} does not have access to this operation.'
+            )

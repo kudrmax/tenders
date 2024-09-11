@@ -41,6 +41,10 @@ async def get_tenders_by_user(
         offset: int = 0,
         dao: TenderDAO = Depends()
 ):
+    """
+    Показать тендеры, которые доступны данному пользователю.
+    То есть либо имеют статус Published, либо имеют пользователь является ответственным за организацию, которая связана с данным тендером.
+    """
     return await dao.get_tenders_by_kwargs(
         limit=limit,
         offset=offset,
