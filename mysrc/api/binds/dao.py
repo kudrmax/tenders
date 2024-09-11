@@ -9,43 +9,35 @@ from mysrc.api.organisations.dao import OrganizationCRUD
 
 
 class BindCRUD(DAO):
-    async def _add_bind_to_bind_db(
+    async def _add_obj_to_obj_db(
             self, status: BindStatus, tender_id, organization_id: int, creator_id: int
     ) -> MBind:
-        m_bind = MBind(
+        return await self._add_to_db(MBind(
             status=status,
             tender_id=tender_id,
             organization_id=organization_id,
             creator_id=creator_id,
-        )
-        self.db.add(m_bind)
-        await self.db.commit()
-        await self.db.refresh(m_bind)
-        return m_bind
+        ))
 
-    async def _add_bind_to_bind_data_db(
+    async def _add_obj_to_obj_data_db(
             self, bind_id: int, name: str, description: str, version: int, **kwargs
     ) -> MBindData:
-        m_bind_data = MBindData(
+        return await self._add_to_db(MBindData(
             bind_id=bind_id,
             name=name,
             description=description,
             version=version,
-        )
-        self.db.add(m_bind_data)
-        await self.db.commit()
-        await self.db.refresh(m_bind_data)
-        return m_bind_data
+        ))
 
-    async def _get_bind_by_id(self, bind_id: int) -> MBind:
+    async def _get_obj_by_id(self, bind_id: int) -> MBind:
         query = select(MBind).where(MBind.id == bind_id)
         m_bind = await self.db.execute(query)
         m_bind = m_bind.scalar_one_or_none()
         if not m_bind:
-            raise HTTPException(status_code=404, detail=f"Bind with id={bind_id} not found")
+            raise HTTPException(status_code=404, detail=f"Bind with id={bind_id} not found.")
         return m_bind
 
-    async def _get_bind_data_with_last_version_by_id(self, bind_id: int) -> MBindData:
+    async def _get_obj_data_with_last_version_by_id(self, bind_id: int) -> MBindData:
         query = (
             select(MBindData).
             where(MBindData.bind_id == bind_id).
@@ -58,7 +50,7 @@ class BindCRUD(DAO):
             raise HTTPException(status_code=404, detail=f"Bind data for bind with id={bind_id} not found.")
         return m_bind_data_with_last_version
 
-    async def _get_bind_data_by_version(self, bind_id: int, version: int) -> MBindData:
+    async def _get_obj_data_by_version(self, bind_id: int, version: int) -> MBindData:
         query = (
             select(MBindData).
             where(MBindData.bind_id == bind_id).
@@ -88,9 +80,9 @@ class BindCRUD(DAO):
                 raise HTTPException(status_code=500, detail="One of bind_id, bind, bind_data must be provided")
 
         if not bind:
-            bind: MBind = await self._get_bind_by_id(bind_id)
+            bind: MBind = await self._get_obj_by_id(bind_id)
         if not bind_data:
-            bind_data: MBindData = await self._get_bind_data_with_last_version_by_id(bind_id)
+            bind_data: MBindData = await self._get_obj_data_with_last_version_by_id(bind_id)
         return SBindRead(
             id=bind.id,
             name=bind_data.name,
@@ -110,14 +102,14 @@ class BindDAO(BindCRUD, OrganizationCRUD, EmployeeCRUD):
         creator = await self._get_employee_by_username(username=bind.creatorUsername)
 
         # добавление тендера в БД тендеров
-        m_bind = await self._add_bind_to_bind_db(
+        m_bind = await self._add_obj_to_obj_db(
             status=bind.status,
             tender_id=bind.tenderId,
             organization_id=bind.organizationId,
             creator_id=creator.id,
         )
         # добавление тендера в БД версий тендеров
-        m_bind_data = await self._add_bind_to_bind_data_db(
+        m_bind_data = await self._add_obj_to_obj_data_db(
             bind_id=m_bind.id,
             name=bind.name,
             description=bind.description,
@@ -131,7 +123,7 @@ class BindDAO(BindCRUD, OrganizationCRUD, EmployeeCRUD):
         # await self._check_auth(username=username)
 
         # получение данных последней версии по предложению
-        m_bind_data_with_last_version = await self._get_bind_data_with_last_version_by_id(bind_id)
+        m_bind_data_with_last_version = await self._get_obj_data_with_last_version_by_id(bind_id)
 
         # обновление данных предложения
         new_bind_data = {**m_bind_data_with_last_version.__dict__}
@@ -140,7 +132,7 @@ class BindDAO(BindCRUD, OrganizationCRUD, EmployeeCRUD):
         new_bind_data['version'] += 1
 
         # добавление новых данных в БД данных предложений
-        m_new_bind_data = await self._add_bind_to_bind_data_db(**new_bind_data)
+        m_new_bind_data = await self._add_obj_to_obj_data_db(**new_bind_data)
 
         return await self.get_response_schema(bind_id=bind_id, bind_data=m_new_bind_data)
 
@@ -161,25 +153,25 @@ class BindDAO(BindCRUD, OrganizationCRUD, EmployeeCRUD):
         for m_bind in m_binds:
             if tender_id and m_bind.tender_id != tender_id:
                 continue
-            m_bind_data = await self._get_bind_data_with_last_version_by_id(m_bind.id)
+            m_bind_data = await self._get_obj_data_with_last_version_by_id(m_bind.id)
             bind_schemas.append(await self.get_response_schema(bind=m_bind, bind_data=m_bind_data))
 
         bind_schemas.sort(key=lambda x: x.name)
         return bind_schemas[offset:offset + limit]
 
     async def get_bind_status_by_id(self, bind_id: int, username: str):
-        m_bind = await self._get_bind_by_id(bind_id)
+        m_bind = await self._get_obj_by_id(bind_id)
         return m_bind.status
 
     async def change_bind_status_by_id(self, bind_id: int, status: BindStatus, username: str):
-        m_bind = await self._get_bind_by_id(bind_id)
+        m_bind = await self._get_obj_by_id(bind_id)
         setattr(m_bind, 'status', status)
         await self.db.commit()
         return m_bind
 
     async def rollback_bind(self, bind_id: int, version: int, username: str):
-        m_bind_data_with_given_version = await self._get_bind_data_by_version(bind_id, version)
-        m_bind_data_with_last_version = await self._get_bind_data_with_last_version_by_id(bind_id)
+        m_bind_data_with_given_version = await self._get_obj_data_by_version(bind_id, version)
+        m_bind_data_with_last_version = await self._get_obj_data_with_last_version_by_id(bind_id)
         m_new_bind_data = MBindData(
             bind_id=bind_id,
             version=m_bind_data_with_last_version.version + 1,
