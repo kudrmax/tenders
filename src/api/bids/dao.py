@@ -130,7 +130,7 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
 
     async def update_bid_by_id(self, bid_id: UUID, bid_update_data: SBindUpdate, username: str):
         # проверка прав доступа
-        # await self._check_auth(username=username)
+        await self.raise_exception_if_forbidden(username=username, bid_id=bid_id)
 
         # получение данных последней версии по предложению
         m_bid_data_with_last_version = await self._get_obj_data_with_last_version_by_id(bid_id)
@@ -155,6 +155,12 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         query = select(MBid)
         m_bids = await self.db.execute(query)
         m_bids = m_bids.scalars()
+
+        if tender_id:
+            m_tender = await self.db.execute(select(MTender).where(MTender.id == tender_id))
+            m_tender = m_tender.scalar_one_or_none()
+            if not m_tender:
+                raise HTTPException(status_code=404, detail=f"Tender with id={tender_id} not found")
 
         bid_schemas = []
         for m_bid in m_bids:
@@ -204,15 +210,20 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
 
     async def get_bid_status_by_id(self, bid_id: UUID, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
+        await self.raise_exception_if_forbidden(username=username, m_bid=m_bid)
         return m_bid.status
 
     async def change_bid_status_by_id(self, bid_id: UUID, status: BidStatus, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
+        await self.raise_exception_if_forbidden(username=username, m_bid=m_bid)
         setattr(m_bid, 'status', status)
         await self.db.commit()
-        return m_bid
+        return await self.get_response_schema(
+            bid=m_bid
+        )
 
     async def rollback_bid(self, bid_id: UUID, version: int, username: str):
+        await self.raise_exception_if_forbidden(username=username, bid_id=bid_id)
         m_bid_data_with_given_version = await self._get_obj_data_by_version(bid_id, version)
         m_bid_data_with_last_version = await self._get_obj_data_with_last_version_by_id(bid_id)
         m_new_bid_data = MBidData(
@@ -223,4 +234,30 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         )
         self.db.add(m_new_bid_data)
         await self.db.commit()
-        return m_new_bid_data
+        return await self.get_response_schema(bid_data=m_new_bid_data, bid_id=bid_id)
+
+    async def raise_exception_if_forbidden(
+            self,
+            username: str,
+            bid_id: UUID | None = None,
+            m_bid: MBid | None = None,
+    ) -> None | bool:
+        """
+        Проверка является ли пользователь с username=username ответственным за оргазинацию для предложения с id=bid_id или является автором
+        """
+        if not m_bid:
+            if not bid_id:
+                raise HTTPException(status_code=500, detail="One of bid_id, tender must be provided.")
+            m_bid: MBid = await self._get_obj_by_id(bid_id=bid_id)
+
+        m_user = await self._get_employee_by_username(username=username)
+
+        if await self.user_is_author(m_bid=m_bid, m_user=m_user):
+            return True
+        if await self.user_is_responsible(m_bid=m_bid, m_user=m_user):
+            return True
+
+        raise HTTPException(
+            status_code=403,
+            detail=f'The user with {username=} does not have access to this operation.'
+        )

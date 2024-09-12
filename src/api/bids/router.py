@@ -21,7 +21,7 @@ async def create_bid(
 
 
 @router.get("/bids/my")
-async def get_bidss_by_user(
+async def get_bids_by_user(
         username: str,
         limit: int = 5,
         offset: int = 0,
@@ -35,7 +35,7 @@ async def get_bidss_by_user(
 
 
 @router.get("/bids/{tenderId}/list")
-async def get_bids_by_user(
+async def get_bids_by_tende_id(
         username: str,
         tenderId: UUID,
         limit: int = 5,
