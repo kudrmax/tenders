@@ -1,10 +1,10 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
-from mysrc.api.tenders.models import TenderServiceType, TenderStatus, MTender
-from mysrc.api.organisations.models import MOrganization
-from mysrc.api.employees.models import MEmployee
-from mysrc.tests.helpers import create_test_organization, create_test_employee
+from src.api.tenders.models import TenderServiceType, TenderStatus, MTender
+from src.api.organisations.models import MOrganization
+from src.api.employees.models import MEmployee
+from src.tests.helpers import create_test_organization, create_test_employee
 
 
 async def test_create_tender_good(client: TestClient, async_session: AsyncSession):

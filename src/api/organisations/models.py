@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, func, ForeignKey
 
-from mysrc.database import Base
+from src.database import Base
 
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 

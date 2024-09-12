@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from mysrc.api.dao import DAO
-from mysrc.api.organisations.models import MOrganization, MOrganizationResponsible
+from src.api.dao import DAO
+from src.api.organisations.models import MOrganization, MOrganizationResponsible
 
 
 class OrganizationCRUD(DAO):

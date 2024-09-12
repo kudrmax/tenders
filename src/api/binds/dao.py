@@ -1,11 +1,11 @@
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
-from mysrc.api.binds.models import MBind, MBindData, BindStatus
-from mysrc.api.binds.schemas import SBindCreate, SBindRead, SBindUpdate
-from mysrc.api.dao import DAO
-from mysrc.api.employees.dao import EmployeeCRUD
-from mysrc.api.organisations.dao import OrganizationCRUD
+from src.api.binds.models import MBind, MBindData, BindStatus
+from src.api.binds.schemas import SBindCreate, SBindRead, SBindUpdate
+from src.api.dao import DAO
+from src.api.employees.dao import EmployeeCRUD
+from src.api.organisations.dao import OrganizationCRUD
 
 
 class BindCRUD(DAO):

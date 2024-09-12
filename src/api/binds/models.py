@@ -2,7 +2,7 @@ from enum import Enum
 
 from sqlalchemy import Column, Integer, String, ForeignKey, func, TIMESTAMP
 
-from mysrc.database import Base
+from src.database import Base
 
 
 class BindStatus(str, Enum):

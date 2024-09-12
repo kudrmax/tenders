@@ -2,9 +2,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends
 
-from mysrc.api.tenders.dao import TenderDAO
-from mysrc.api.tenders.models import TenderServiceType, TenderStatus
-from mysrc.api.tenders.schemas import STenderCreate, STenderUpdate, STenderRead
+from src.api.tenders.dao import TenderDAO
+from src.api.tenders.models import TenderServiceType, TenderStatus
+from src.api.tenders.schemas import STenderCreate, STenderUpdate, STenderRead
 
 router = APIRouter(
     prefix="/api",

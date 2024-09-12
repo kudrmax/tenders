@@ -2,13 +2,13 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 
-from mysrc.api.tenders.router import router as tenders_router
-from mysrc.api.binds.router import router as binds_router
-from mysrc.database import init_db
-from mysrc.api.tenders.models import MTender, MTenderData
-from mysrc.api.binds.models import MBind, MBindData
-from mysrc.api.organisations.models import MOrganization, MOrganizationResponsible
-from mysrc.api.employees.models import MEmployee
+from src.api.tenders.router import router as tenders_router
+from src.api.binds.router import router as binds_router
+from src.database import init_db
+from src.api.tenders.models import MTender, MTenderData
+from src.api.binds.models import MBind, MBindData
+from src.api.organisations.models import MOrganization, MOrganizationResponsible
+from src.api.employees.models import MEmployee
 
 app = FastAPI(title='Avito')
 app.include_router(tenders_router)

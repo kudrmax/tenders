@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from mysrc.api.organisations.models import MOrganization
-from mysrc.api.employees.models import MEmployee
-from mysrc.api.tenders.dao import TenderDAO
-from mysrc.api.tenders.schemas import STenderCreate
+from src.api.organisations.models import MOrganization
+from src.api.employees.models import MEmployee
+from src.api.tenders.dao import TenderDAO
+from src.api.tenders.schemas import STenderCreate
 
 
 async def create_test_organization(

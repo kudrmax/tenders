@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy import select
 
-from mysrc.api.dao import DAO
-from mysrc.api.employees.models import MEmployee
+from src.api.dao import DAO
+from src.api.employees.models import MEmployee
 
 
 class EmployeeCRUD(DAO):

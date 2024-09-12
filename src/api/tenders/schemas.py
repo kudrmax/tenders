@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from mysrc.api.tenders.models import TenderServiceType, TenderStatus
+from src.api.tenders.models import TenderServiceType, TenderStatus
 
 
 class STenderCreate(BaseModel):

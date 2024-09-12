@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from mysrc.api.binds.models import BindStatus
+from src.api.binds.models import BindStatus
 
 
 class SBindCreate(BaseModel):

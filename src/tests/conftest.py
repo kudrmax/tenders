@@ -13,13 +13,13 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from starlette.testclient import TestClient
 
-from mysrc.database import get_db, Base
-from mysrc.api.tenders.models import MTender
-from mysrc.api.organisations.models import MOrganization, MOrganizationResponsible
-from mysrc.api.employees.models import MEmployee
-# from mysrc.api.binds.models import MTender
-from mysrc.main import app
-from mysrc.settings import DB_TEST_URL, DB_TEST_URL_SYNC, DB_TEST_PATH
+from src.database import get_db, Base
+from src.api.tenders.models import MTender
+from src.api.organisations.models import MOrganization, MOrganizationResponsible
+from src.api.employees.models import MEmployee
+# from src.api.binds.models import MTender
+from src.main import app
+from src.settings import DB_TEST_URL, DB_TEST_URL_SYNC, DB_TEST_PATH
 
 
 @pytest.fixture(scope="session")

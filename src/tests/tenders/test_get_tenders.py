@@ -1,9 +1,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.testclient import TestClient
 
-from mysrc.api.tenders.models import TenderServiceType, TenderStatus
-from mysrc.api.tenders.schemas import STenderCreate
-from mysrc.tests.helpers import create_test_organization, create_test_employee, create_test_tender
+from src.api.tenders.models import TenderServiceType, TenderStatus
+from src.api.tenders.schemas import STenderCreate
+from src.tests.helpers import create_test_organization, create_test_employee, create_test_tender
 
 
 async def test_get_all_tenders(client: TestClient, async_session: AsyncSession):

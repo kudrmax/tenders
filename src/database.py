@@ -4,8 +4,10 @@ from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-async_engine = create_async_engine('sqlite+aiosqlite:///./test.db', future=True, echo=False)
-sync_engine = create_engine('sqlite:///./test.db', echo=True)
+from src.settings import settings
+
+async_engine = create_async_engine(settings.db.url, future=True, echo=False)
+sync_engine = create_engine(settings.db.url, echo=True)
 AsyncSessionLocal = sessionmaker(
     async_engine, expire_on_commit=False, autocommit=False, autoflush=False, class_=AsyncSession
 )
@@ -14,7 +16,8 @@ Base = declarative_base()
 
 
 def init_db():
-    Base.metadata.create_all(bind=sync_engine)
+    # Base.metadata.create_all(bind=sync_engine)
+    pass
 
 
 async def get_db() -> Generator:

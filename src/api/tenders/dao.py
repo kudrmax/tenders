@@ -4,12 +4,12 @@ from typing import List
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
-from mysrc.api.dao import DAO
-from mysrc.api.organisations.dao import OrganizationCRUD
-from mysrc.api.employees.dao import EmployeeCRUD
-from mysrc.api.tenders.models import TenderServiceType, TenderStatus, MTender, MTenderData
-from mysrc.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
-from mysrc.database import AsyncSessionLocal
+from src.api.dao import DAO
+from src.api.organisations.dao import OrganizationCRUD
+from src.api.employees.dao import EmployeeCRUD
+from src.api.tenders.models import TenderServiceType, TenderStatus, MTender, MTenderData
+from src.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
+from src.database import AsyncSessionLocal
 
 
 class TenderCRUD(DAO):
