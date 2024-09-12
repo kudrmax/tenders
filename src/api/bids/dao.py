@@ -1,10 +1,11 @@
+from typing import List
 from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
 from src.api.bids.models import MBid, MBidData, BidStatus, BidAuthorType, MBidFeedback
-from src.api.bids.schemas import SBindCreate, SBindRead, SBindUpdate
+from src.api.bids.schemas import SBindCreate, SBindRead, SBindUpdate, SReviewRequest
 from src.api.dao import DAO
 from src.api.employees.dao import EmployeeCRUD
 from src.api.employees.models import MEmployee
@@ -68,6 +69,13 @@ class BidCRUD(DAO):
                 detail=f"Bind data with version={version} for bid with id={bid_id} not found."
             )
         return m_bid_data
+
+    async def get_tender_by_id(self, tender_id):
+        m_tender = await self.db.execute(select(MTender).where(MTender.id == tender_id))
+        m_tender = m_tender.scalar_one_or_none()
+        if not m_tender:
+            raise HTTPException(status_code=404, detail=f"Tender with id={tender_id} not found")
+        return m_tender
 
     async def get_response_schema(
             self,
@@ -146,9 +154,9 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
 
         return await self.get_response_schema(bid_id=bid_id, bid_data=m_new_bid_data)
 
-    async def get_bids_by_kwargs(self, **kwargs):
-        limit: int | None = kwargs.get('limit', None)
-        offset: int | None = kwargs.get('offset', None)
+    async def get_bids_by_kwargs(self, **kwargs) -> List[SBindRead]:
+        limit: int | None = kwargs.get('limit', 5)
+        offset: int | None = kwargs.get('offset', 0)
         tender_id: UUID | None = kwargs.get('tender_id', None)
         username: str | None = kwargs.get('username', None)
 
@@ -157,10 +165,7 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         m_bids = m_bids.scalars()
 
         if tender_id:
-            m_tender = await self.db.execute(select(MTender).where(MTender.id == tender_id))
-            m_tender = m_tender.scalar_one_or_none()
-            if not m_tender:
-                raise HTTPException(status_code=404, detail=f"Tender with id={tender_id} not found")
+            await self.get_tender_by_id(tender_id=tender_id)
 
         bid_schemas = []
         for m_bid in m_bids:
@@ -194,8 +199,7 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
 
     async def user_is_responsible(self, m_bid: MBid, m_user: MEmployee) -> bool:
         tender_id = m_bid.tender_id
-        m_tender = await self.db.execute(select(MTender).where(MTender.id == tender_id))
-        m_tender = m_tender.scalar_one_or_none()
+        m_tender = await self.get_tender_by_id(tender_id)
         flag_by_tender = await self.check_is_user_responsible(
             user_id=m_user.id,
             organization_id=m_tender.organization_id
@@ -275,3 +279,68 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
             feedback=bidFDeedback
         ))
         return await self.get_response_schema(bid=m_bid)
+
+    async def get_review(self, review_request: SReviewRequest):
+        """
+        Ответственный за организацию может посмотреть прошлые отзывы на предложения автора, который создал предложение для его тендера.
+        """
+        limit = review_request.limit
+        offset = review_request.offset
+
+        requester_username = review_request.requesterUsername
+        author_username = review_request.authorUsername
+        tender_id = review_request.tenderId
+
+        m_requester = await self._get_employee_by_username(requester_username)
+        m_author = await self._get_employee_by_username(author_username)
+        m_tender = await self.get_tender_by_id(tender_id=tender_id)
+        # m_bid = await self._get_obj_by_id(bid_id=bid_id)
+        if not await self.check_is_user_responsible(
+                user_id=m_requester.id,
+                organization_id=m_tender.organization_id
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail=f'The user with username={requester_username} does not have access to this operation.'
+            )
+
+        # проверить, что автор реально сделал предложение которое связано с тендером
+        bids_connected_to_tender: List[SBindRead] = await self.get_bids_by_kwargs(
+            username=requester_username,
+            tender_id=tender_id
+        )
+
+        def check_is_author_create_bit_for_tender(bids_connected_to_tender: List[SBindRead], user_id: UUID):
+            for bid in bids_connected_to_tender:
+                if bid.authorType == BidAuthorType.user and bid.authorId == user_id:
+                    return True
+            return False
+
+        if not check_is_author_create_bit_for_tender(bids_connected_to_tender, m_author.id):
+            raise HTTPException(
+                status_code=400,
+                detail=f"User {author_username} did not create bids for tender with {tender_id=}"
+            )
+        # есть автор
+        # он когда-то делал предложения
+        # нахоим все его предложения
+        # находим все отзывы на такие предложения
+        query = (
+            select(MBid).
+            where(MBid.author_type == BidAuthorType.user).
+            where(MBid.author_id == m_author.id)
+        )
+        feedbacks = []
+        m_bids = await self.db.execute(query)
+        m_bids = m_bids.scalars()
+        for m_bid in m_bids:
+            feedback = await self.db.execute(select(MBidFeedback).where(MBidFeedback.bid_id == m_bid.id))
+            feedback = feedback.scalars()
+            for f in feedback:
+                if f:
+                    feedbacks.append({
+                        'id': f.id,
+                        'description': f.feedback,
+                        'createdAt': f.created_at,
+                    })
+        return feedbacks

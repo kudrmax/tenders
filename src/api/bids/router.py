@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.bids.dao import BidDAO
 from src.api.bids.models import BidStatus
-from src.api.bids.schemas import SBindCreate, SBindUpdate
+from src.api.bids.schemas import SBindCreate, SBindUpdate, SReviewRequest
 
 router = APIRouter(
     prefix="/api",
@@ -88,6 +88,7 @@ async def rollback_bid(
 ):
     return await dao.rollback_bid(bidId, version, username)
 
+
 @router.put("/bids/{bidId}/feedback")
 async def add_feedback(
         bidId: UUID,
@@ -96,3 +97,22 @@ async def add_feedback(
         dao: BidDAO = Depends()
 ):
     return await dao.add_feedback(bidId, bidFDeedback, username)
+
+
+@router.get("/bids/{tenderId}/review")
+async def get_review(
+        tenderId: UUID,
+        authorUsername: str,
+        requesterUsername: str,
+        limit: int = 5,
+        offset: int = 0,
+        dao: BidDAO = Depends()
+):
+    reviewRequest = SReviewRequest(
+        tenderId=tenderId,
+        authorUsername=authorUsername,
+        requesterUsername=requesterUsername,
+        limit=limit,
+        offset=offset,
+    )
+    return await dao.get_review(reviewRequest)

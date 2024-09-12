@@ -27,3 +27,11 @@ class SBindRead(BaseModel):
 class SBindUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+
+
+class SReviewRequest(BaseModel):
+    tenderId: UUID
+    authorUsername: str
+    requesterUsername: str
+    limit: int = 5
+    offset: int = 0
