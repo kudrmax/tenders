@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 
@@ -54,7 +55,7 @@ async def get_tenders_by_user(
 
 @router.get("/tenders/{tenderId}/status")
 async def get_tender_status_by_id(
-        tenderId: int,
+        tenderId: UUID,
         username: str,
         dao: TenderDAO = Depends()
 ):
@@ -63,7 +64,7 @@ async def get_tender_status_by_id(
 
 @router.put("/tenders/{tenderId}/status")
 async def change_tender_status_by_id(
-        tenderId: int,
+        tenderId: UUID,
         status: TenderStatus,
         username: str,
         dao: TenderDAO = Depends()
@@ -73,7 +74,7 @@ async def change_tender_status_by_id(
 
 @router.patch("/tenders/{tenderId}/edit")
 async def edit_tender(
-        tenderId: int,
+        tenderId: UUID,
         tender_update_data: STenderUpdate,
         username: str,
         dao: TenderDAO = Depends()
@@ -83,7 +84,7 @@ async def edit_tender(
 
 @router.put("/tenders/{tenderId}/rollback/{version}")
 async def rollback_tender(
-        tenderId: int,
+        tenderId: UUID,
         version: int,
         username: str,
         dao: TenderDAO = Depends()

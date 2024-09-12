@@ -105,9 +105,16 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         # проверка существования пользователя с username=tender.creatorUsername
         creator = await self._get_employee_by_username(username=tender.creatorUsername)
 
+        # проверка что пользователь является ответственным за организацию
+        if not await self.check_is_user_responsible(organization_id=tender.organizationId, user_id=creator.id):
+            raise HTTPException(
+                status_code=403,
+                detail=f"User {creator.username} is not responsible for tender creation",
+            )
+
         # добавление тендера в БД тендеров (MTender)
         m_tender = await self._add_obj_to_obj_db(
-            status=tender.status,
+            status=TenderStatus.created,
             organization_id=tender.organizationId,
             creator_id=creator.id,
         )
@@ -125,7 +132,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
 
     async def update_tender_by_id(self, tender_id: UUID, tender_update_data: STenderUpdate, username: str):
         # проверка прав доступа
-        await self.check_access_rights(username=username, tender_id=tender_id)
+        await self.raise_exception_if_forbidden(username=username, tender_id=tender_id)
 
         # получение данных последней версии по тендеру
         m_tender_data_with_last_version = await self._get_obj_data_with_last_version_by_id(tender_id)
@@ -184,30 +191,18 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         m_tender = await self._get_obj_by_id(tender_id)
         if m_tender.status == 'Published':
             return m_tender.status
-        if not await self.check_access_rights(username=username, m_tender=m_tender):
-            raise HTTPException(
-                status_code=403,
-                detail=f'The user with {username=} does not have access to this operation.'
-            )
+        await self.raise_exception_if_forbidden(username=username, m_tender=m_tender)
         return m_tender.status
 
     async def change_tender_status_by_id(self, tender_id: UUID, status: TenderStatus, username: str):
         m_tender = await self._get_obj_by_id(tender_id)
-        if not await self.check_access_rights(username=username, m_tender=m_tender):
-            raise HTTPException(
-                status_code=403,
-                detail=f'The user with {username=} does not have access to this operation.'
-            )
+        await self.raise_exception_if_forbidden(username=username, m_tender=m_tender)
         setattr(m_tender, 'status', status)
         await self.db.commit()
         return await self.get_response_schema(tender=m_tender)
 
     async def rollback_tender(self, tender_id: UUID, version: int, username: str):
-        if not await self.check_access_rights(username=username, tender_id=tender_id):
-            raise HTTPException(
-                status_code=403,
-                detail=f'The user with {username=} does not have access to this operation.'
-            )
+        await self.raise_exception_if_forbidden(username=username, tender_id=tender_id)
         m_tender_data_with_given_version = await self._get_obj_data_by_version(tender_id, version)
         m_tender_data_with_last_version = await self._get_obj_data_with_last_version_by_id(tender_id)
         m_new_tender_data = MTenderData(
@@ -221,7 +216,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         await self.db.commit()
         return m_new_tender_data
 
-    async def check_access_rights(
+    async def raise_exception_if_forbidden(
             self,
             username: str,
             tender_id: UUID | None = None,

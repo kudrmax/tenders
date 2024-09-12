@@ -10,7 +10,6 @@ class STenderCreate(BaseModel):
     name: str
     description: str
     serviceType: TenderServiceType
-    status: TenderStatus
     organizationId: UUID
     creatorUsername: str
 
