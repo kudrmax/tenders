@@ -1,8 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
-from src.api.binds.models import MBind, MBindData, BindStatus
-from src.api.binds.schemas import SBindCreate, SBindRead, SBindUpdate
+from src.api.bids.models import MBind, MBindData, BindStatus
+from src.api.bids.schemas import SBindCreate, SBindRead, SBindUpdate
 from src.api.dao import DAO
 from src.api.employees.dao import EmployeeCRUD
 from src.api.organisations.dao import OrganizationCRUD

@@ -4,7 +4,7 @@ from src.database.database import Base
 from src.settings import settings
 
 from src.api.tenders.models import MTender, MTenderData
-from src.api.binds.models import MBind, MBindData
+from src.api.bids.models import MBind, MBindData
 from src.api.organisations.models import MOrganization, MOrganizationResponsible
 from src.api.employees.models import MEmployee
 

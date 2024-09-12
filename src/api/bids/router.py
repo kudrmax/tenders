@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends
 
-from src.api.binds.dao import BindDAO
-from src.api.binds.models import BindStatus
-from src.api.binds.schemas import SBindCreate, SBindUpdate
+from src.api.bids.dao import BindDAO
+from src.api.bids.models import BindStatus
+from src.api.bids.schemas import SBindCreate, SBindUpdate
 
 router = APIRouter(
     prefix="/api",

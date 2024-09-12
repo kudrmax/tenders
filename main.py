@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.tenders.router import router as tenders_router
-from src.api.binds.router import router as binds_router
+from src.api.bids.router import router as binds_router
 
 from src.database.database import get_db
 from src.database.init_database import init_db
