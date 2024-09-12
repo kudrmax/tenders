@@ -20,7 +20,6 @@ class MBid(Base):
     status = Column(String, nullable=False)
     tender_id = Column(UUID(as_uuid=True), ForeignKey('tender.id'), nullable=False)
     organization_id = Column(UUID(as_uuid=True), ForeignKey('organization.id'), nullable=False)
-    creator_id = Column(UUID(as_uuid=True), ForeignKey('employee.id'), nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
