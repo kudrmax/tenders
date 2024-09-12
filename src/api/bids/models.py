@@ -16,7 +16,6 @@ class MBid(Base):
     __tablename__ = 'bid'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # id = Column(Integer, primary_key=True)
     status = Column(String, nullable=False)
     tender_id = Column(UUID(as_uuid=True), ForeignKey('tender.id'), nullable=False)
     organization_id = Column(UUID(as_uuid=True), ForeignKey('organization.id'), nullable=False)
@@ -28,8 +27,7 @@ class MBidData(Base):
     __tablename__ = 'bid_data'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    # id = Column(Integer, primary_key=True)
-    bid_id = Column(UUID(as_uuid=True), ForeignKey('bind.id'), nullable=False)
+    bid_id = Column(UUID(as_uuid=True), ForeignKey('bid.id'), nullable=False)
     version = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)

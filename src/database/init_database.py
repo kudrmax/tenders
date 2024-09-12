@@ -16,8 +16,8 @@ def init_db(
     # tables = [
     #     MTender.__tablename__,
     #     MTenderData.__tablename__,
-    #     MBind.__tablename__,
-    #     MBindData.__tablename__
+    #     MBid.__tablename__,
+    #     MBidData.__tablename__
     # ]
     # if create_organisations:
     #     tables.append(MOrganization.__tablename__)
