@@ -1,46 +1,46 @@
 from fastapi import APIRouter, Depends
 
-from src.api.bids.dao import BindDAO
-from src.api.bids.models import BindStatus
+from src.api.bids.dao import BidDAO
+from src.api.bids.models import BidStatus
 from src.api.bids.schemas import SBindCreate, SBindUpdate
 
 router = APIRouter(
     prefix="/api",
-    tags=["Binds"],
+    tags=["Bids"],
 )
 
 
-@router.post("/binds/new")
-async def create_bind(
+@router.post("/bids/new")
+async def create_bid(
         tender: SBindCreate,
-        dao: BindDAO = Depends()
+        dao: BidDAO = Depends()
 ):
-    return await dao.create_bind(tender)
+    return await dao.create_bid(tender)
 
 
-@router.get("/binds/my")
+@router.get("/bids/my")
 async def get_tenders_by_user(
         username: str,
         limit: int = 5,
         offset: int = 0,
-        dao: BindDAO = Depends()
+        dao: BidDAO = Depends()
 ):
-    return await dao.get_binds_by_kwargs(
+    return await dao.get_bids_by_kwargs(
         limit=limit,
         offset=offset,
         username=username
     )
 
 
-@router.get("/binds/{tenderId}/list")
+@router.get("/bids/{tenderId}/list")
 async def get_tenders_by_user(
         username: str,
         tenderId: int,
         limit: int = 5,
         offset: int = 0,
-        dao: BindDAO = Depends()
+        dao: BidDAO = Depends()
 ):
-    return await dao.get_binds_by_kwargs(
+    return await dao.get_bids_by_kwargs(
         limit=limit,
         offset=offset,
         username=username,
@@ -48,40 +48,40 @@ async def get_tenders_by_user(
     )
 
 
-@router.get("/binds/{bindId}/status")
-async def get_bind_status_by_id(
-        bindId: int,
+@router.get("/bids/{bidId}/status")
+async def get_bid_status_by_id(
+        bidId: int,
         username: str,
-        dao: BindDAO = Depends()
+        dao: BidDAO = Depends()
 ):
-    return await dao.get_bind_status_by_id(bindId, username)
+    return await dao.get_bid_status_by_id(bidId, username)
 
 
-@router.put("/binds/{bindId}/status")
-async def change_bind_status_by_id(
-        bindId: int,
-        status: BindStatus,
+@router.put("/bids/{bidId}/status")
+async def change_bid_status_by_id(
+        bidId: int,
+        status: BidStatus,
         username: str,
-        dao: BindDAO = Depends()
+        dao: BidDAO = Depends()
 ):
-    return await dao.change_bind_status_by_id(bindId, status, username)
+    return await dao.change_bid_status_by_id(bidId, status, username)
 
 
-@router.patch("/binds/{bindId}/edit")
-async def edit_bind(
-        bindId: int,
-        bind_update_data: SBindUpdate,
+@router.patch("/bids/{bidId}/edit")
+async def edit_bid(
+        bidId: int,
+        bid_update_data: SBindUpdate,
         username: str,
-        dao: BindDAO = Depends()
+        dao: BidDAO = Depends()
 ):
-    return await dao.update_bind_by_id(bindId, bind_update_data, username)
+    return await dao.update_bid_by_id(bidId, bid_update_data, username)
 
 
-@router.put("/binds/{bindId}/rollback/{version}")
-async def rollback_bind(
-        bindId: int,
+@router.put("/bids/{bidId}/rollback/{version}")
+async def rollback_bid(
+        bidId: int,
         version: int,
         username: str,
-        dao: BindDAO = Depends()
+        dao: BidDAO = Depends()
 ):
-    return await dao.rollback_bind(bindId, version, username)
+    return await dao.rollback_bid(bidId, version, username)

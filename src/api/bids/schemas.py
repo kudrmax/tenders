@@ -2,13 +2,13 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
-from src.api.bids.models import BindStatus
+from src.api.bids.models import BidStatus
 
 
 class SBindCreate(BaseModel):
     name: str
     description: str
-    status: BindStatus
+    status: BidStatus
     tenderId: int
     organizationId: int
     creatorUsername: str
@@ -18,7 +18,7 @@ class SBindRead(BaseModel):
     id: int
     name: str
     description: str
-    status: BindStatus
+    status: BidStatus
     version: int
     createdAt: datetime
 

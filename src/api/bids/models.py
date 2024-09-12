@@ -6,14 +6,14 @@ from sqlalchemy import Column, Integer, String, ForeignKey, func, TIMESTAMP, UUI
 from src.database.database import Base
 
 
-class BindStatus(str, Enum):
+class BidStatus(str, Enum):
     created = "Created"
     published = "Published"
     closed = "Canceled"
 
 
-class MBind(Base):
-    __tablename__ = 'bind'
+class MBid(Base):
+    __tablename__ = 'bid'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # id = Column(Integer, primary_key=True)
@@ -25,12 +25,12 @@ class MBind(Base):
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
 
-class MBindData(Base):
-    __tablename__ = 'bind_data'
+class MBidData(Base):
+    __tablename__ = 'bid_data'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     # id = Column(Integer, primary_key=True)
-    bind_id = Column(UUID(as_uuid=True), ForeignKey('bind.id'), nullable=False)
+    bid_id = Column(UUID(as_uuid=True), ForeignKey('bind.id'), nullable=False)
     version = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
