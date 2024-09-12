@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -9,13 +10,13 @@ class SBindCreate(BaseModel):
     name: str
     description: str
     status: BidStatus
-    tenderId: int
+    tenderId: UUID
     organizationId: int
     creatorUsername: str
 
 
 class SBindRead(BaseModel):
-    id: int
+    id: UUID
     name: str
     description: str
     status: BidStatus

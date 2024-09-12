@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 
 from src.api.bids.dao import BidDAO
@@ -35,7 +37,7 @@ async def get_tenders_by_user(
 @router.get("/bids/{tenderId}/list")
 async def get_tenders_by_user(
         username: str,
-        tenderId: int,
+        tenderId: UUID,
         limit: int = 5,
         offset: int = 0,
         dao: BidDAO = Depends()
@@ -50,7 +52,7 @@ async def get_tenders_by_user(
 
 @router.get("/bids/{bidId}/status")
 async def get_bid_status_by_id(
-        bidId: int,
+        bidId: UUID,
         username: str,
         dao: BidDAO = Depends()
 ):
@@ -59,7 +61,7 @@ async def get_bid_status_by_id(
 
 @router.put("/bids/{bidId}/status")
 async def change_bid_status_by_id(
-        bidId: int,
+        bidId: UUID,
         status: BidStatus,
         username: str,
         dao: BidDAO = Depends()
@@ -69,7 +71,7 @@ async def change_bid_status_by_id(
 
 @router.patch("/bids/{bidId}/edit")
 async def edit_bid(
-        bidId: int,
+        bidId: UUID,
         bid_update_data: SBindUpdate,
         username: str,
         dao: BidDAO = Depends()
@@ -79,7 +81,7 @@ async def edit_bid(
 
 @router.put("/bids/{bidId}/rollback/{version}")
 async def rollback_bid(
-        bidId: int,
+        bidId: UUID,
         version: int,
         username: str,
         dao: BidDAO = Depends()

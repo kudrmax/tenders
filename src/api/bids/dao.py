@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
@@ -20,7 +22,7 @@ class BidCRUD(DAO):
         ))
 
     async def _add_obj_to_obj_data_db(
-            self, bid_id: int, name: str, description: str, version: int, **kwargs
+            self, bid_id: UUID, name: str, description: str, version: int, **kwargs
     ) -> MBidData:
         return await self._add_to_db(MBidData(
             bid_id=bid_id,
@@ -29,7 +31,7 @@ class BidCRUD(DAO):
             version=version,
         ))
 
-    async def _get_obj_by_id(self, bid_id: int) -> MBid:
+    async def _get_obj_by_id(self, bid_id: UUID) -> MBid:
         query = select(MBid).where(MBid.id == bid_id)
         m_bid = await self.db.execute(query)
         m_bid = m_bid.scalar_one_or_none()
@@ -37,7 +39,7 @@ class BidCRUD(DAO):
             raise HTTPException(status_code=404, detail=f"Bind with id={bid_id} not found.")
         return m_bid
 
-    async def _get_obj_data_with_last_version_by_id(self, bid_id: int) -> MBidData:
+    async def _get_obj_data_with_last_version_by_id(self, bid_id: UUID) -> MBidData:
         query = (
             select(MBidData).
             where(MBidData.bid_id == bid_id).
@@ -50,7 +52,7 @@ class BidCRUD(DAO):
             raise HTTPException(status_code=404, detail=f"Bind data for bid with id={bid_id} not found.")
         return m_bid_data_with_last_version
 
-    async def _get_obj_data_by_version(self, bid_id: int, version: int) -> MBidData:
+    async def _get_obj_data_by_version(self, bid_id: UUID, version: int) -> MBidData:
         query = (
             select(MBidData).
             where(MBidData.bid_id == bid_id).
@@ -67,7 +69,7 @@ class BidCRUD(DAO):
 
     async def get_response_schema(
             self,
-            bid_id: int | None = None,
+            bid_id: UUID | None = None,
             bid: MBid | None = None,
             bid_data: MBidData | None = None,
     ) -> SBindRead:
@@ -118,7 +120,7 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         )
         return await self.get_response_schema(bid=m_bid, bid_data=m_bid_data)
 
-    async def update_bid_by_id(self, bid_id: int, bid_update_data: SBindUpdate, username: str):
+    async def update_bid_by_id(self, bid_id: UUID, bid_update_data: SBindUpdate, username: str):
         # проверка прав доступа
         # await self._check_auth(username=username)
 
@@ -159,17 +161,17 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         bid_schemas.sort(key=lambda x: x.name)
         return bid_schemas[offset:offset + limit]
 
-    async def get_bid_status_by_id(self, bid_id: int, username: str):
+    async def get_bid_status_by_id(self, bid_id: UUID, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
         return m_bid.status
 
-    async def change_bid_status_by_id(self, bid_id: int, status: BidStatus, username: str):
+    async def change_bid_status_by_id(self, bid_id: UUID, status: BidStatus, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
         setattr(m_bid, 'status', status)
         await self.db.commit()
         return m_bid
 
-    async def rollback_bid(self, bid_id: int, version: int, username: str):
+    async def rollback_bid(self, bid_id: UUID, version: int, username: str):
         m_bid_data_with_given_version = await self._get_obj_data_by_version(bid_id, version)
         m_bid_data_with_last_version = await self._get_obj_data_with_last_version_by_id(bid_id)
         m_new_bid_data = MBidData(
