@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
-from src.api.bids.models import MBid, MBidData, BidStatus, BidAuthorType
+from src.api.bids.models import MBid, MBidData, BidStatus, BidAuthorType, MBidFeedback
 from src.api.bids.schemas import SBindCreate, SBindRead, SBindUpdate
 from src.api.dao import DAO
 from src.api.employees.dao import EmployeeCRUD
@@ -261,3 +261,17 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
             status_code=403,
             detail=f'The user with {username=} does not have access to this operation.'
         )
+
+    async def add_feedback(self, bidId: UUID, bidFDeedback: str, username: str):
+        m_bid = await self._get_obj_by_id(bid_id=bidId)
+        m_user = await self._get_employee_by_username(username=username)
+        if not await self.user_is_responsible(m_bid=m_bid, m_user=m_user):
+            raise HTTPException(
+                status_code=403,
+                detail="You can't send feedback"
+            )
+        await self._add_to_db(MBidFeedback(
+            bid_id=bidId,
+            feedback=bidFDeedback
+        ))
+        return await self.get_response_schema(bid=m_bid)

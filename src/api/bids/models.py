@@ -37,3 +37,11 @@ class MBidData(Base):
     version = Column(Integer, nullable=False)
     name = Column(String, nullable=False)
     description = Column(String, nullable=False)
+
+
+class MBidFeedback(Base):
+    __tablename__ = 'bid_feedback'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    bid_id = Column(UUID(as_uuid=True), ForeignKey('bid.id'), nullable=False)
+    feedback = Column(String, nullable=False)

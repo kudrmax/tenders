@@ -87,3 +87,12 @@ async def rollback_bid(
         dao: BidDAO = Depends()
 ):
     return await dao.rollback_bid(bidId, version, username)
+
+@router.put("/bids/{bidId}/feedback")
+async def add_feedback(
+        bidId: UUID,
+        bidFDeedback: str,
+        username: str,
+        dao: BidDAO = Depends()
+):
+    return await dao.add_feedback(bidId, bidFDeedback, username)
