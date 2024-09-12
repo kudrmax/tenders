@@ -154,9 +154,6 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         offset: int | None = kwargs.get('offset', None)
         username: str | None = kwargs.get('username', None)
 
-        # if username:
-        #     creator = await self._get_employee_by_username(username=username)
-        #     query = query.filter(MTender.creator_id == creator.id)
         query = select(MTender)
         m_tenders = await self.db.execute(query)
         m_tenders = m_tenders.scalars()

@@ -12,13 +12,19 @@ class BidStatus(str, Enum):
     closed = "Canceled"
 
 
+class BidAuthorType(str, Enum):
+    organization = "Organization"
+    user = "User"
+
+
 class MBid(Base):
     __tablename__ = 'bid'
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     status = Column(String, nullable=False)
     tender_id = Column(UUID(as_uuid=True), ForeignKey('tender.id'), nullable=False)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey('organization.id'), nullable=False)
+    author_type = Column(String, nullable=False)
+    author_id = Column(UUID(as_uuid=True), nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 

@@ -3,22 +3,23 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
-from src.api.bids.models import MBid, MBidData, BidStatus
+from src.api.bids.models import MBid, MBidData, BidStatus, BidAuthorType
 from src.api.bids.schemas import SBindCreate, SBindRead, SBindUpdate
 from src.api.dao import DAO
 from src.api.employees.dao import EmployeeCRUD
+from src.api.employees.models import MEmployee
 from src.api.organisations.dao import OrganizationCRUD
 
 
 class BidCRUD(DAO):
     async def _add_obj_to_obj_db(
-            self, status: BidStatus, tender_id, organization_id: int, creator_id: int
+            self, status: BidStatus, tender_id, author_type: BidAuthorType, author_id: UUID
     ) -> MBid:
         return await self._add_to_db(MBid(
             status=status,
             tender_id=tender_id,
-            organization_id=organization_id,
-            creator_id=creator_id,
+            author_type=author_type,
+            author_id=author_id,
         ))
 
     async def _add_obj_to_obj_data_db(
@@ -88,8 +89,9 @@ class BidCRUD(DAO):
         return SBindRead(
             id=bid.id,
             name=bid_data.name,
-            description=bid_data.description,
             status=bid.status,
+            authorType=bid.author_type,
+            authorId=bid.author_id,
             version=bid_data.version,
             createdAt=bid.created_at,
         )
@@ -97,25 +99,30 @@ class BidCRUD(DAO):
 
 class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
     async def create_bid(self, bid: SBindCreate) -> SBindRead:
-        # проверка существования организации с id=bid.organizationId
-        await self._get_organisation_by_id(organization_id=bid.organizationId)
-
-        # проверка существования пользователя с username=bid.creatorUsername
-        creator = await self._get_employee_by_username(username=bid.creatorUsername)
+        if bid.authorType == BidAuthorType.organization:
+            # проверка существования организации с id=bid.organizationId
+            await self._get_organisation_by_id(organization_id=bid.authorId)
+        elif bid.authorType == BidAuthorType.user:
+            # проверка существования пользователя с id=bid.creatorUsername
+            await self._get_employee_by_id(id=bid.authorId)
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f'Unprocessable authorType "{bid.authorType}"',
+            )
 
         # добавление тендера в БД тендеров
         m_bid = await self._add_obj_to_obj_db(
-            status=bid.status,
+            status=BidStatus.created,
             tender_id=bid.tenderId,
-            organization_id=bid.organizationId,
-            creator_id=creator.id,
+            author_type=bid.authorType,
+            author_id=bid.authorId,
         )
         # добавление тендера в БД версий тендеров
         m_bid_data = await self._add_obj_to_obj_data_db(
             bid_id=m_bid.id,
             name=bid.name,
             description=bid.description,
-            service_type=bid.serviceType,
             version=1,
         )
         return await self.get_response_schema(bid=m_bid, bid_data=m_bid_data)
@@ -141,22 +148,37 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
     async def get_bids_by_kwargs(self, **kwargs):
         limit: int | None = kwargs.get('limit', None)
         offset: int | None = kwargs.get('offset', None)
-        tender_id: int | None = kwargs.get('tender_id', None)
+        tender_id: UUID | None = kwargs.get('tender_id', None)
         username: str | None = kwargs.get('username', None)
 
         query = select(MBid)
-        if username:
-            creator = await self._get_employee_by_username(username=username)
-            query = query.filter(MBid.creator_id == creator.id)
         m_bids = await self.db.execute(query)
         m_bids = m_bids.scalars()
 
         bid_schemas = []
         for m_bid in m_bids:
+            # фильтр на tender_id
             if tender_id and m_bid.tender_id != tender_id:
                 continue
-            m_bid_data = await self._get_obj_data_with_last_version_by_id(m_bid.id)
-            bid_schemas.append(await self.get_response_schema(bid=m_bid, bid_data=m_bid_data))
+
+            # фильтер на username (права доступа)
+            m_user = await self._get_employee_by_username(username=username)
+            if username:
+                add_flag = False
+                if m_bid.status == BidStatus.published:  # разрешить, если статус 'Published'
+                    add_flag = True
+                elif m_bid.author_type == BidAuthorType.user and m_bid.author_id == m_user.id:  # разрежить, если пользователь является автором
+                    add_flag = True
+                elif (
+                        m_bid.author_type == BidAuthorType.organization and  # разрешить, если пользователь является ответственным за организацию
+                        await self.check_is_user_responsible(organization_id=m_bid.author_id, user_id=m_user.id)
+                ):
+                    add_flag = True
+                if add_flag:
+                    m_bid_data = await self._get_obj_data_with_last_version_by_id(m_bid.id)
+                    bid_schemas.append(
+                        await self.get_response_schema(bid=m_bid, bid_data=m_bid_data)
+                    )
 
         bid_schemas.sort(key=lambda x: x.name)
         return bid_schemas[offset:offset + limit]

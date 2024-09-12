@@ -14,14 +14,14 @@ router = APIRouter(
 
 @router.post("/bids/new")
 async def create_bid(
-        tender: SBindCreate,
+        bid: SBindCreate,
         dao: BidDAO = Depends()
 ):
-    return await dao.create_bid(tender)
+    return await dao.create_bid(bid)
 
 
 @router.get("/bids/my")
-async def get_tenders_by_user(
+async def get_bidss_by_user(
         username: str,
         limit: int = 5,
         offset: int = 0,
@@ -35,7 +35,7 @@ async def get_tenders_by_user(
 
 
 @router.get("/bids/{tenderId}/list")
-async def get_tenders_by_user(
+async def get_bids_by_user(
         username: str,
         tenderId: UUID,
         limit: int = 5,

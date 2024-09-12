@@ -3,23 +3,23 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from src.api.bids.models import BidStatus
+from src.api.bids.models import BidStatus, BidAuthorType
 
 
 class SBindCreate(BaseModel):
     name: str
     description: str
-    status: BidStatus
     tenderId: UUID
-    organizationId: int
-    creatorUsername: str
+    authorType: BidAuthorType
+    authorId: UUID
 
 
 class SBindRead(BaseModel):
     id: UUID
     name: str
-    description: str
     status: BidStatus
+    authorType: BidAuthorType
+    authorId: UUID
     version: int
     createdAt: datetime
 
