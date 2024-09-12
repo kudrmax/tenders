@@ -9,6 +9,7 @@ from src.api.dao import DAO
 from src.api.employees.dao import EmployeeCRUD
 from src.api.employees.models import MEmployee
 from src.api.organisations.dao import OrganizationCRUD
+from src.api.tenders.models import MTender
 
 
 class BidCRUD(DAO):
@@ -167,12 +168,9 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
                 add_flag = False
                 if m_bid.status == BidStatus.published:  # разрешить, если статус 'Published'
                     add_flag = True
-                elif m_bid.author_type == BidAuthorType.user and m_bid.author_id == m_user.id:  # разрежить, если пользователь является автором
+                elif await self.user_is_author(m_bid=m_bid, m_user=m_user):
                     add_flag = True
-                elif (
-                        m_bid.author_type == BidAuthorType.organization and  # разрешить, если пользователь является ответственным за организацию
-                        await self.check_is_user_responsible(organization_id=m_bid.author_id, user_id=m_user.id)
-                ):
+                elif await self.user_is_responsible(m_bid=m_bid, m_user=m_user):
                     add_flag = True
                 if add_flag:
                     m_bid_data = await self._get_obj_data_with_last_version_by_id(m_bid.id)
@@ -182,6 +180,27 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
 
         bid_schemas.sort(key=lambda x: x.name)
         return bid_schemas[offset:offset + limit]
+
+    async def user_is_author(self, m_bid: MBid, m_user: MEmployee) -> bool:
+        if m_bid.author_type == BidAuthorType.user and m_bid.author_id == m_user.id:
+            return True
+        return False
+
+    async def user_is_responsible(self, m_bid: MBid, m_user: MEmployee) -> bool:
+        tender_id = m_bid.tender_id
+        m_tender = await self.db.execute(select(MTender).where(MTender.id == tender_id))
+        m_tender = m_tender.scalar_one_or_none()
+        flag_by_tender = await self.check_is_user_responsible(
+            user_id=m_user.id,
+            organization_id=m_tender.organization_id
+        )
+        flag_by_type = False
+        if m_bid.author_type == BidAuthorType.organization:
+            flag_by_type = await self.check_is_user_responsible(
+                user_id=m_user.id,
+                organization_id=m_bid.author_id
+            )
+        return flag_by_type or flag_by_tender
 
     async def get_bid_status_by_id(self, bid_id: UUID, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
