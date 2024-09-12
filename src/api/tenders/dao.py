@@ -1,5 +1,4 @@
-import asyncio
-from typing import List
+from uuid import UUID
 
 from fastapi import HTTPException
 from sqlalchemy import select, desc
@@ -9,12 +8,11 @@ from src.api.organisations.dao import OrganizationCRUD
 from src.api.employees.dao import EmployeeCRUD
 from src.api.tenders.models import TenderServiceType, TenderStatus, MTender, MTenderData
 from src.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
-from src.database import AsyncSessionLocal
 
 
 class TenderCRUD(DAO):
     async def _add_obj_to_obj_db(
-            self, status: TenderStatus, organization_id: int, creator_id: int
+            self, status: TenderStatus, organization_id: UUID, creator_id: UUID
     ) -> MTender:
         return await self._add_to_db(MTender(
             status=status,
@@ -23,7 +21,7 @@ class TenderCRUD(DAO):
         ))
 
     async def _add_obj_to_obj_data_db(
-            self, tender_id: int, name: str, description: str, service_type: TenderServiceType, version: int, **kwargs
+            self, tender_id: UUID, name: str, description: str, service_type: TenderServiceType, version: int, **kwargs
     ) -> MTenderData:
         return await self._add_to_db(MTenderData(
             tender_id=tender_id,
@@ -33,7 +31,7 @@ class TenderCRUD(DAO):
             version=version,
         ))
 
-    async def _get_obj_by_id(self, tender_id: int) -> MTender:
+    async def _get_obj_by_id(self, tender_id: UUID) -> MTender:
         query = select(MTender).where(MTender.id == tender_id)
         m_tender = await self.db.execute(query)
         m_tender = m_tender.scalar_one_or_none()
@@ -41,7 +39,7 @@ class TenderCRUD(DAO):
             raise HTTPException(status_code=404, detail=f"Tender with id={tender_id} not found")
         return m_tender
 
-    async def _get_obj_data_with_last_version_by_id(self, tender_id: int) -> MTenderData:
+    async def _get_obj_data_with_last_version_by_id(self, tender_id: UUID) -> MTenderData:
         query = (
             select(MTenderData).
             where(MTenderData.tender_id == tender_id).
@@ -54,7 +52,7 @@ class TenderCRUD(DAO):
             raise HTTPException(status_code=404, detail=f"Tender data for tender with id={tender_id} not found.")
         return m_tender_data_with_last_version
 
-    async def _get_obj_data_by_version(self, tender_id: int, version: int) -> MTenderData:
+    async def _get_obj_data_by_version(self, tender_id: UUID, version: int) -> MTenderData:
         query = (
             select(MTenderData).
             where(MTenderData.tender_id == tender_id).
@@ -71,7 +69,7 @@ class TenderCRUD(DAO):
 
     async def get_response_schema(
             self,
-            tender_id: int | None = None,
+            tender_id: UUID | None = None,
             tender: MTender | None = None,
             tender_data: MTenderData | None = None,
     ) -> STenderRead:
@@ -125,7 +123,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
 
         return await self.get_response_schema(tender=m_tender, tender_data=m_tender_data)
 
-    async def update_tender_by_id(self, tender_id: int, tender_update_data: STenderUpdate, username: str):
+    async def update_tender_by_id(self, tender_id: UUID, tender_update_data: STenderUpdate, username: str):
         # проверка прав доступа
         await self.check_access_rights(username=username, tender_id=tender_id)
 
@@ -182,7 +180,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         tender_schemas.sort(key=lambda x: x.name)
         return tender_schemas[offset:offset + limit]
 
-    async def get_tender_status_by_id(self, tender_id: int, username: str):
+    async def get_tender_status_by_id(self, tender_id: UUID, username: str):
         m_tender = await self._get_obj_by_id(tender_id)
         if m_tender.status == 'Published':
             return m_tender.status
@@ -193,7 +191,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
             )
         return m_tender.status
 
-    async def change_tender_status_by_id(self, tender_id: int, status: TenderStatus, username: str):
+    async def change_tender_status_by_id(self, tender_id: UUID, status: TenderStatus, username: str):
         m_tender = await self._get_obj_by_id(tender_id)
         if not await self.check_access_rights(username=username, m_tender=m_tender):
             raise HTTPException(
@@ -204,7 +202,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         await self.db.commit()
         return await self.get_response_schema(tender=m_tender)
 
-    async def rollback_tender(self, tender_id: int, version: int, username: str):
+    async def rollback_tender(self, tender_id: UUID, version: int, username: str):
         if not await self.check_access_rights(username=username, tender_id=tender_id):
             raise HTTPException(
                 status_code=403,
@@ -226,7 +224,7 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
     async def check_access_rights(
             self,
             username: str,
-            tender_id: int | None = None,
+            tender_id: UUID | None = None,
             m_tender: MTender | None = None,
     ) -> None:
         """

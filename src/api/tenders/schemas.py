@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import UUID
 
 from pydantic import BaseModel
 
@@ -10,12 +11,12 @@ class STenderCreate(BaseModel):
     description: str
     serviceType: TenderServiceType
     status: TenderStatus
-    organizationId: int
+    organizationId: UUID
     creatorUsername: str
 
 
 class STenderRead(BaseModel):
-    id: int
+    id: UUID
     name: str
     description: str
     status: TenderStatus

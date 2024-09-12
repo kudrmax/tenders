@@ -5,18 +5,13 @@ from typing import Generator
 
 import asyncpg
 import pytest
-from alembic import command
-from alembic.config import Config
-from sqlalchemy import text, create_engine
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker
 from starlette.testclient import TestClient
 
-from src.database import get_db, Base
-from src.api.tenders.models import MTender
-from src.api.organisations.models import MOrganization, MOrganizationResponsible
-from src.api.employees.models import MEmployee
+from src.database.database import get_db, Base
 # from src.api.binds.models import MTender
 from src.main import app
 from src.settings import DB_TEST_URL, DB_TEST_URL_SYNC, DB_TEST_PATH

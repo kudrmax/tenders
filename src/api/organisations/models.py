@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, func, ForeignKey
+import uuid
 
-from src.database import Base
+from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, func, ForeignKey, UUID
+
+from src.database.database import Base
 
 from sqlalchemy.dialects.postgresql import ENUM as PG_ENUM
 
@@ -21,8 +23,8 @@ class MOrganization(Base):
     """
     __tablename__ = 'organization'
 
-    # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    id = Column(Integer, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # id = Column(Integer, primary_key=True)
     name = Column(String(100), nullable=False)
     description = Column(Text)
     type = Column(organization_type_enum)
@@ -42,10 +44,10 @@ class MOrganizationResponsible(Base):
     """
     __tablename__ = 'organization_responsible'
 
-    # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    id = Column(Integer, primary_key=True)
-    organization_id = Column(Integer, ForeignKey('organization.id', ondelete='CASCADE'))
-    user_id = Column(Integer, ForeignKey('employee.id', ondelete='CASCADE'))
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # id = Column(Integer, primary_key=True)
+    organization_id = Column(UUID(as_uuid=True), ForeignKey('organization.id'))
+    user_id = Column(UUID(as_uuid=True), ForeignKey('employee.id'))
 
     # organization = relationship('Organization', back_populates='responsibles')
     # employee = relationship('Employee', back_populates='organizations')

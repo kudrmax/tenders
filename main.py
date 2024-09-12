@@ -6,11 +6,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.tenders.router import router as tenders_router
 from src.api.binds.router import router as binds_router
-from src.database import init_db, get_db
-from src.api.tenders.models import MTender, MTenderData
-from src.api.binds.models import MBind, MBindData
-from src.api.organisations.models import MOrganization, MOrganizationResponsible
+from src.database.database import get_db
+from src.database.init_database import init_db
 from src.api.employees.models import MEmployee
+from src.api.organisations.models import MOrganization, MOrganizationResponsible
 
 app = FastAPI(title='Avito')
 app.include_router(tenders_router)
@@ -21,13 +20,28 @@ app.include_router(binds_router)
 def root():
     return RedirectResponse('/docs')
 
-@app.get("/test_postgres")
-async def test_postgres(db: AsyncSession = Depends(get_db)):
+
+@app.get("/employee/get_all")
+async def get_all_employee(db: AsyncSession = Depends(get_db)):
     quety = select(MEmployee)
     res = await db.execute(quety)
     return res.scalars().all()
 
 
+@app.get("/organisation/get_all")
+async def get_all_organisaion(db: AsyncSession = Depends(get_db)):
+    quety = select(MOrganization)
+    res = await db.execute(quety)
+    return res.scalars().all()
+
+
+@app.get("/organisation_responsible/get_all")
+async def get_all_organisation_responsible(db: AsyncSession = Depends(get_db)):
+    quety = select(MOrganizationResponsible)
+    res = await db.execute(quety)
+    return res.scalars().all()
+
+
 if __name__ == '__main__':
-    init_db()
+    # init_db()
     uvicorn.run('main:app', host='0.0.0.0', port=8080, reload=True)

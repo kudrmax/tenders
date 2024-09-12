@@ -19,12 +19,13 @@ class DBSettingsBase:
     # password = None
     # database = None
 
-    @property
-    def url(self):
+    def url(self, is_async: bool = True) -> str:
         for data in [self.host, self.port, self.username, self.password, self.database]:
             if not data:
                 raise HTTPException(status_code=500, detail='Database connection data has not been se tproperly')
-        return f'postgresql+asyncpg://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}'
+        if is_async:
+            return f'postgresql+asyncpg://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}'
+        return f'postgresql://{self.username}:{self.password}@{self.host}:{self.port}/{self.database}'
 
 
 class DBSettings(BaseSettings, DBSettingsBase):

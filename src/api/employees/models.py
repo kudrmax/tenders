@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, TIMESTAMP, func
+import uuid
 
-from src.database import Base
+from sqlalchemy import Column, Integer, String, TIMESTAMP, func, UUID
+
+from src.database.database import Base
 
 
 class MEmployee(Base):
@@ -17,8 +19,8 @@ class MEmployee(Base):
     """
     __tablename__ = 'employee'
 
-    # id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    id = Column(Integer, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    # id = Column(Integer, primary_key=True)
     username = Column(String(50), unique=True, nullable=False)
     first_name = Column(String(50))
     last_name = Column(String(50))
