@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from src.api.bids.dao import BidDAO
-from src.api.bids.models import BidStatus
+from src.api.bids.models import BidStatus, BidDecision
 from src.api.bids.schemas import SBindCreate, SBindUpdate, SReviewRequest
 
 router = APIRouter(
@@ -116,3 +116,13 @@ async def get_review(
         offset=offset,
     )
     return await dao.get_review(reviewRequest)
+
+
+@router.put("/bids/{bidId}/submit_decision")
+async def submit_decision(
+        bidId: UUID,
+        decision: BidDecision,
+        username: str,
+        dao: BidDAO = Depends()
+):
+    return await dao.submit_decision(bidId, decision, username)

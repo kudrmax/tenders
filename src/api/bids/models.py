@@ -9,12 +9,17 @@ from src.database.database import Base
 class BidStatus(str, Enum):
     created = "Created"
     published = "Published"
-    closed = "Canceled"
+    canceled = "Canceled"
 
 
 class BidAuthorType(str, Enum):
     organization = "Organization"
     user = "User"
+
+
+class BidDecision(str, Enum):
+    approved = "Approved"
+    rejected = "Rejected"
 
 
 class MBid(Base):
@@ -45,4 +50,14 @@ class MBidFeedback(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     bid_id = Column(UUID(as_uuid=True), ForeignKey('bid.id'), nullable=False)
     feedback = Column(String, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.current_timestamp())
+
+
+class MBidDecision(Base):
+    __tablename__ = 'bid_decision'
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    bid_id = Column(UUID(as_uuid=True), ForeignKey('bid.id'), nullable=False)
+    employee_id = Column(UUID(as_uuid=True), ForeignKey('employee.id'), nullable=False)
+    decision = Column(String, nullable=False)
     created_at = Column(TIMESTAMP, server_default=func.current_timestamp())

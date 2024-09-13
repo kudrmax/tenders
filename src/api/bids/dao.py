@@ -4,13 +4,14 @@ from uuid import UUID
 from fastapi import HTTPException
 from sqlalchemy import select, desc
 
-from src.api.bids.models import MBid, MBidData, BidStatus, BidAuthorType, MBidFeedback
+from src.api.bids.models import MBid, MBidData, BidStatus, BidAuthorType, MBidFeedback, BidDecision, MBidDecision
 from src.api.bids.schemas import SBindCreate, SBindRead, SBindUpdate, SReviewRequest
 from src.api.dao import DAO
 from src.api.employees.dao import EmployeeCRUD
 from src.api.employees.models import MEmployee
 from src.api.organisations.dao import OrganizationCRUD
-from src.api.tenders.models import MTender
+from src.api.organisations.models import MOrganizationResponsible
+from src.api.tenders.models import MTender, TenderStatus
 
 
 class BidCRUD(DAO):
@@ -198,6 +199,10 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         return False
 
     async def user_is_responsible(self, m_bid: MBid, m_user: MEmployee) -> bool:
+        """
+        @todo переделать
+        если автором является организация, это не значит, что она может принимать решения
+        """
         tender_id = m_bid.tender_id
         m_tender = await self.get_tender_by_id(tender_id)
         flag_by_tender = await self.check_is_user_responsible(
@@ -344,3 +349,51 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
                         'createdAt': f.created_at,
                     })
         return feedbacks
+
+    async def submit_decision(self, bidId: UUID, decision: BidDecision, username: str):
+        m_bid = await self._get_obj_by_id(bid_id=bidId)
+        m_user = await self._get_employee_by_username(username=username)
+        is_responsible = await self.user_is_responsible(m_bid=m_bid, m_user=m_user)
+        if not is_responsible:
+            raise HTTPException(
+                status_code=403,
+                detail=f'The user with {username=} does not have access to this operation.'
+            )
+        # @todo проверить, чтобы один пользователь не могу добавить несколько раз одно и тоже
+        await self._add_to_db(MBidDecision(
+            bid_id=bidId,
+            employee_id=m_user.id,
+            decision=decision,
+        ))
+        await self.submit_decision_to_tender(bid_id=bidId)
+        return await self.get_response_schema(bid=m_bid)
+
+    async def submit_decision_to_tender(self, bid_id: UUID):
+        m_bid = await self._get_obj_by_id(bid_id=bid_id)
+        query = select(MBidDecision).where(MBidDecision.bid_id == bid_id)
+        query_approved = query.where(MBidDecision.decision == BidDecision.approved)
+        query_rejected = query.where(MBidDecision.decision == BidDecision.rejected)
+
+        decisions_rejected = (await self.db.execute(query_rejected)).scalars().all()
+        if len(decisions_rejected) > 0:
+            m_bid.status = BidStatus.canceled
+            await self.db.refresh(m_bid)
+            await self.db.commit()
+            return
+
+        decisions_approved = (await self.db.execute(query_approved)).scalars().all()
+        approved_counter = len(decisions_approved)
+
+        tender_id = m_bid.tender_id
+        m_tender = await self.get_tender_by_id(tender_id=tender_id)
+        organization_id = m_tender.organization_id
+        query_organisation = select(MOrganizationResponsible).where(
+            MOrganizationResponsible.organization_id == organization_id)
+        organisation_responsible_counter = len((await self.db.execute(query_organisation)).scalars().all())
+
+        min_approved_count = min(3, organisation_responsible_counter)
+
+        if approved_counter >= min_approved_count:
+            m_tender.status = TenderStatus.closed
+            await self.db.commit()
+            return
