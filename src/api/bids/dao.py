@@ -120,6 +120,8 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
                 status_code=400,
                 detail=f'Unprocessable authorType "{bid.authorType}"',
             )
+        # првоерка сущетсвования tender_id
+        await self.get_tender_by_id(tender_id=bid.tenderId)
 
         # добавление тендера в БД тендеров
         m_bid = await self._add_obj_to_obj_db(

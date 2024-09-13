@@ -35,7 +35,7 @@ async def get_bids_by_user(
 
 
 @router.get("/bids/{tenderId}/list")
-async def get_bids_by_tende_id(
+async def get_bids_by_tender_id(
         username: str,
         tenderId: UUID,
         limit: int = Query(5, ge=0),
