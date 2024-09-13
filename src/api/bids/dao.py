@@ -219,6 +219,12 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
             )
         return flag_by_type or flag_by_tender
 
+    async def user_is_responsible_of_author_organization(self):
+        pass
+
+    async def user_is_responsible_of_tender_related_to_bid(self):
+        pass
+
     async def get_bid_status_by_id(self, bid_id: UUID, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
         await self.raise_exception_if_forbidden(username=username, m_bid=m_bid)
