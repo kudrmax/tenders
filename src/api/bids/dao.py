@@ -386,17 +386,16 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
     async def submit_decision(self, bidId: UUID, decision: BidDecision, username: str):
         m_bid = await self._get_obj_by_id(bid_id=bidId)
         m_user = await self._get_employee_by_username(username=username)
-        is_responsible = await self.check_is_user_responsible(m_bid=m_bid, m_user=m_user)
-        # @todo
+        is_responsible = await self.user_is_responsible_of_tender_related_to_bid(m_bid=m_bid, m_user=m_user)
         if not is_responsible:
             raise HTTPException(
                 status_code=403,
                 detail=f'The user with {username=} does not have access to this operation.'
             )
         # проверить, чтобы один пользователь не могу добавить несколько решение
-        decisions = await self.db.execute(select(MBidDecision).where(MBidDecision.employee_id == m_user.id))
-        decisions = decisions.scalars().all()
-        if len(decisions) == 0:
+        decisions_of_user_to_this_bid = await self.db.execute(select(MBidDecision).where(MBidDecision.employee_id == m_user.id))
+        decisions_of_user_to_this_bid = decisions_of_user_to_this_bid.scalars().all()
+        if len(decisions_of_user_to_this_bid) == 0:
             await self._add_to_db(MBidDecision(
                 bid_id=bidId,
                 employee_id=m_user.id,
