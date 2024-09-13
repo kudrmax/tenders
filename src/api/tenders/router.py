@@ -1,7 +1,7 @@
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query, Path
 
 from src.api.tenders.dao import TenderDAO
 from src.api.tenders.models import TenderServiceType, TenderStatus
@@ -23,8 +23,8 @@ async def create_tender(
 
 @router.get("/tenders/")
 async def get_all_tenders_by_filter(
-        limit: int = 5,
-        offset: int = 0,
+        limit: int = Query(5, ge=0),
+        offset: int = Query(0, ge=0),
         service_type: Optional[TenderServiceType] = None,
         dao: TenderDAO = Depends()
 ):
@@ -38,8 +38,8 @@ async def get_all_tenders_by_filter(
 @router.get("/tenders/my")
 async def get_tenders_by_user(
         username: str,
-        limit: int = 5,
-        offset: int = 0,
+        limit: int = Query(5, ge=0),
+        offset: int = Query(0, ge=0),
         dao: TenderDAO = Depends()
 ):
     """
@@ -85,8 +85,8 @@ async def edit_tender(
 @router.put("/tenders/{tenderId}/rollback/{version}")
 async def rollback_tender(
         tenderId: UUID,
-        version: int,
         username: str,
+        version: int = Path(..., ge=0),
         dao: TenderDAO = Depends()
 ):
     return await dao.rollback_tender(tenderId, version, username)

@@ -12,12 +12,11 @@ from src.api.tenders.schemas import STenderCreate, STenderRead, STenderUpdate
 
 class TenderCRUD(DAO):
     async def _add_obj_to_obj_db(
-            self, status: TenderStatus, organization_id: UUID, creator_id: UUID
+            self, status: TenderStatus, organization_id: UUID
     ) -> MTender:
         return await self._add_to_db(MTender(
             status=status,
             organization_id=organization_id,
-            creator_id=creator_id,
         ))
 
     async def _add_obj_to_obj_data_db(
@@ -116,7 +115,6 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         m_tender = await self._add_obj_to_obj_db(
             status=TenderStatus.created,
             organization_id=tender.organizationId,
-            creator_id=creator.id,
         )
 
         # добавление тендера в БД версий тендеров (MTenderData)
@@ -140,8 +138,11 @@ class TenderDAO(TenderCRUD, OrganizationCRUD, EmployeeCRUD):
         # обновление данных тендера
         new_tender_data = {**m_tender_data_with_last_version.__dict__}
         for key, value in tender_update_data.model_dump(exclude_unset=True).items():
+            if key == 'serviceType':  # тупо решение, но не успеваю переделать
+                key = 'service_type'
             new_tender_data[key] = value
         new_tender_data['version'] += 1
+
 
         # добавление новых данных в БД версий тендера
         m_new_tender_data = await self._add_obj_to_obj_data_db(**new_tender_data)

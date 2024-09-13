@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from src.api.bids.dao import BidDAO
 from src.api.bids.models import BidStatus, BidDecision
@@ -23,8 +23,8 @@ async def create_bid(
 @router.get("/bids/my")
 async def get_bids_by_user(
         username: str,
-        limit: int = 5,
-        offset: int = 0,
+        limit: int = Query(5, ge=0),
+        offset: int = Query(0, ge=0),
         dao: BidDAO = Depends()
 ):
     return await dao.get_bids_by_kwargs(
@@ -38,8 +38,8 @@ async def get_bids_by_user(
 async def get_bids_by_tende_id(
         username: str,
         tenderId: UUID,
-        limit: int = 5,
-        offset: int = 0,
+        limit: int = Query(5, ge=0),
+        offset: int = Query(0, ge=0),
         dao: BidDAO = Depends()
 ):
     return await dao.get_bids_by_kwargs(
@@ -104,8 +104,8 @@ async def get_review(
         tenderId: UUID,
         authorUsername: str,
         requesterUsername: str,
-        limit: int = 5,
-        offset: int = 0,
+        limit: int = Query(5, ge=0),
+        offset: int = Query(0, ge=0),
         dao: BidDAO = Depends()
 ):
     reviewRequest = SReviewRequest(
