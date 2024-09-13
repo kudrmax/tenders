@@ -184,7 +184,9 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
                     add_flag = True
                 elif await self.user_is_author(m_bid=m_bid, m_user=m_user):
                     add_flag = True
-                elif await self.user_is_responsible(m_bid=m_bid, m_user=m_user):
+                elif await self.user_is_responsible_of_tender_related_to_bid(m_bid=m_bid, m_user=m_user):
+                    add_flag = True
+                elif await self.user_is_responsible_of_author_organization(m_bid=m_bid, m_user=m_user):
                     add_flag = True
                 if add_flag:
                     m_bid_data = await self._get_obj_data_with_last_version_by_id(m_bid.id)
@@ -200,39 +202,61 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
             return True
         return False
 
-    async def user_is_responsible(self, m_bid: MBid, m_user: MEmployee) -> bool:
-        """
-        @todo переделать
-        если автором является организация, это не значит, что она может принимать решения
-        """
-        tender_id = m_bid.tender_id
-        m_tender = await self.get_tender_by_id(tender_id)
-        flag_by_tender = await self.check_is_user_responsible(
-            user_id=m_user.id,
-            organization_id=m_tender.organization_id
-        )
-        flag_by_type = False
+    # async def user_is_responsible(self, m_bid: MBid, m_user: MEmployee) -> bool:
+    #     """
+    #     @todo переделать
+    #     если автором является организация, это не значит, что она может принимать решения
+    #     """
+    #     tender_id = m_bid.tender_id
+    #     m_tender = await self.get_tender_by_id(tender_id)
+    #     flag_by_tender = await self.check_is_user_responsible(
+    #         user_id=m_user.id,
+    #         organization_id=m_tender.organization_id
+    #     )
+    #     flag_by_type = False
+    #     if m_bid.author_type == BidAuthorType.organization:
+    #         flag_by_type = await self.check_is_user_responsible(
+    #             user_id=m_user.id,
+    #             organization_id=m_bid.author_id
+    #         )
+    #     return flag_by_type or flag_by_tender
+
+    async def user_is_responsible_of_author_organization(self, m_bid: MBid, m_user: MEmployee):
         if m_bid.author_type == BidAuthorType.organization:
-            flag_by_type = await self.check_is_user_responsible(
+            return await self.check_is_user_responsible(
                 user_id=m_user.id,
                 organization_id=m_bid.author_id
             )
-        return flag_by_type or flag_by_tender
+        return False
 
-    async def user_is_responsible_of_author_organization(self):
-        pass
-
-    async def user_is_responsible_of_tender_related_to_bid(self):
-        pass
+    async def user_is_responsible_of_tender_related_to_bid(self, m_bid: MBid, m_user: MEmployee):
+        tender_id = m_bid.tender_id
+        m_tender = await self.get_tender_by_id(tender_id)
+        return await self.check_is_user_responsible(
+            user_id=m_user.id,
+            organization_id=m_tender.organization_id
+        )
 
     async def get_bid_status_by_id(self, bid_id: UUID, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
-        await self.raise_exception_if_forbidden(username=username, m_bid=m_bid)
+        if m_bid.status == BidStatus.published:
+            return m_bid.status
+        m_user = await self._get_employee_by_username(username=username)
+        flag1 = await self.user_is_responsible_of_tender_related_to_bid(m_bid=m_bid, m_user=m_user)
+        flag2 = await self.user_is_responsible_of_author_organization(m_bid=m_bid, m_user=m_user)
+        flag3 = await self.user_is_author(m_bid=m_bid, m_user=m_user)
+        if not flag1 and not flag2 and not flag3:
+            raise HTTPException(status_code=403, detail="You can't see status")
         return m_bid.status
 
     async def change_bid_status_by_id(self, bid_id: UUID, status: BidStatus, username: str):
         m_bid = await self._get_obj_by_id(bid_id)
-        await self.raise_exception_if_forbidden(username=username, m_bid=m_bid)
+        m_user = await self._get_employee_by_username(username=username)
+        flag1 = await self.user_is_responsible_of_tender_related_to_bid(m_bid=m_bid, m_user=m_user)
+        flag2 = await self.user_is_responsible_of_author_organization(m_bid=m_bid, m_user=m_user)
+        flag3 = await self.user_is_author(m_bid=m_bid, m_user=m_user)
+        if not flag1 and not flag2 and not flag3:
+            raise HTTPException(status_code=403, detail="You can't see status")
         setattr(m_bid, 'status', status)
         await self.db.commit()
         return await self.get_response_schema(
@@ -241,6 +265,7 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
 
     async def rollback_bid(self, bid_id: UUID, version: int, username: str):
         await self.raise_exception_if_forbidden(username=username, bid_id=bid_id)
+
         m_bid_data_with_given_version = await self._get_obj_data_by_version(bid_id, version)
         m_bid_data_with_last_version = await self._get_obj_data_with_last_version_by_id(bid_id)
         m_new_bid_data = MBidData(
@@ -253,36 +278,36 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         await self.db.commit()
         return await self.get_response_schema(bid_data=m_new_bid_data, bid_id=bid_id)
 
-    async def raise_exception_if_forbidden(
-            self,
-            username: str,
-            bid_id: UUID | None = None,
-            m_bid: MBid | None = None,
-    ) -> None | bool:
-        """
-        Проверка является ли пользователь с username=username ответственным за оргазинацию для предложения с id=bid_id или является автором
-        """
-        if not m_bid:
-            if not bid_id:
-                raise HTTPException(status_code=500, detail="One of bid_id, tender must be provided.")
-            m_bid: MBid = await self._get_obj_by_id(bid_id=bid_id)
-
-        m_user = await self._get_employee_by_username(username=username)
-
-        if await self.user_is_author(m_bid=m_bid, m_user=m_user):
-            return True
-        if await self.user_is_responsible(m_bid=m_bid, m_user=m_user):
-            return True
-
-        raise HTTPException(
-            status_code=403,
-            detail=f'The user with {username=} does not have access to this operation.'
-        )
+    # async def raise_exception_if_forbidden(
+    #         self,
+    #         username: str,
+    #         bid_id: UUID | None = None,
+    #         m_bid: MBid | None = None,
+    # ) -> None | bool:
+    #     """
+    #     Проверка является ли пользователь с username=username ответственным за оргазинацию для предложения с id=bid_id или является автором
+    #     """
+    #     if not m_bid:
+    #         if not bid_id:
+    #             raise HTTPException(status_code=500, detail="One of bid_id, tender must be provided.")
+    #         m_bid: MBid = await self._get_obj_by_id(bid_id=bid_id)
+    #
+    #     m_user = await self._get_employee_by_username(username=username)
+    #
+    #     if await self.user_is_author(m_bid=m_bid, m_user=m_user):
+    #         return True
+    #     if await self.user_is_responsible(m_bid=m_bid, m_user=m_user):
+    #         return True
+    #
+    #     raise HTTPException(
+    #         status_code=403,
+    #         detail=f'The user with {username=} does not have access to this operation.'
+    #     )
 
     async def add_feedback(self, bidId: UUID, bidFDeedback: str, username: str):
         m_bid = await self._get_obj_by_id(bid_id=bidId)
         m_user = await self._get_employee_by_username(username=username)
-        if not await self.user_is_responsible(m_bid=m_bid, m_user=m_user):
+        if not await self.user_is_responsible_of_tender_related_to_bid(m_bid=m_bid, m_user=m_user):
             raise HTTPException(
                 status_code=403,
                 detail="You can't send feedback"
@@ -356,12 +381,13 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
                         'description': f.feedback,
                         'createdAt': f.created_at,
                     })
-        return feedbacks
+        return feedbacks[offset:offset + limit]
 
     async def submit_decision(self, bidId: UUID, decision: BidDecision, username: str):
         m_bid = await self._get_obj_by_id(bid_id=bidId)
         m_user = await self._get_employee_by_username(username=username)
-        is_responsible = await self.user_is_responsible(m_bid=m_bid, m_user=m_user)
+        is_responsible = await self.check_is_user_responsible(m_bid=m_bid, m_user=m_user)
+        # @todo
         if not is_responsible:
             raise HTTPException(
                 status_code=403,
@@ -407,3 +433,12 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
             m_tender.status = TenderStatus.closed
             await self.db.commit()
             return
+
+    async def raise_exception_if_forbidden(self, username, bid_id):
+        m_bid = await self._get_obj_by_id(bid_id)
+        m_user = await self._get_employee_by_username(username=username)
+        flag1 = await self.user_is_responsible_of_tender_related_to_bid(m_bid=m_bid, m_user=m_user)
+        flag2 = await self.user_is_responsible_of_author_organization(m_bid=m_bid, m_user=m_user)
+        flag3 = await self.user_is_author(m_bid=m_bid, m_user=m_user)
+        if not flag1 and not flag2 and not flag3:
+            raise HTTPException(status_code=403, detail="You has no right to do this operation.")
