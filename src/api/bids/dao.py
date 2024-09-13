@@ -359,13 +359,16 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
                 status_code=403,
                 detail=f'The user with {username=} does not have access to this operation.'
             )
-        # @todo проверить, чтобы один пользователь не могу добавить несколько раз одно и тоже
-        await self._add_to_db(MBidDecision(
-            bid_id=bidId,
-            employee_id=m_user.id,
-            decision=decision,
-        ))
-        await self.submit_decision_to_tender(bid_id=bidId)
+        # проверить, чтобы один пользователь не могу добавить несколько решение
+        decisions = await self.db.execute(select(MBidDecision).where(MBidDecision.employee_id == m_user.id))
+        decisions = decisions.scalars().all()
+        if len(decisions) == 0:
+            await self._add_to_db(MBidDecision(
+                bid_id=bidId,
+                employee_id=m_user.id,
+                decision=decision,
+            ))
+            await self.submit_decision_to_tender(bid_id=bidId)
         return await self.get_response_schema(bid=m_bid)
 
     async def submit_decision_to_tender(self, bid_id: UUID):
@@ -377,7 +380,6 @@ class BidDAO(BidCRUD, OrganizationCRUD, EmployeeCRUD):
         decisions_rejected = (await self.db.execute(query_rejected)).scalars().all()
         if len(decisions_rejected) > 0:
             m_bid.status = BidStatus.canceled
-            await self.db.refresh(m_bid)
             await self.db.commit()
             return
 
