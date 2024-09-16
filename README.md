@@ -2,6 +2,8 @@
 
 Тестовое задание на позицию стажера по backend разработке в Авито.
 
+Stack: `Python`, `FastAPI`, `SQLAlchemy`, `Pydantic`
+
 ## Задание
 
 - [openapi](task/openapi.yml)
